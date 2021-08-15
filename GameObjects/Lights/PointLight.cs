@@ -1,0 +1,37 @@
+﻿using OpenTK.Mathematics;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace GameEngine.GameObjects.Lights
+{
+    class PointLight : Light
+    {
+        private static int _id = -1;
+        public int PointLightID;
+        public PointLight(Mesh mesh, Vector3 position, Vector3 ambient, Vector3 diffuse, Vector3 lightColor, 
+            Vector3 direction = default, Vector3 rotation = default, Vector3 scale = default, float velocity = 0, Matrix4 model = default)
+            : base(mesh, position, ambient, diffuse,  lightColor, direction, rotation, scale, velocity, model)
+        {
+            _id++;
+            PointLightID = _id;
+        }
+        public override void Render(Shader shader)
+        {
+
+            shader.Use();
+            SetupModel(shader);
+            shader.SetVector3($"pointLights[{PointLightID}].position", Position);
+            shader.SetVector3($"pointLights[{PointLightID}].ambient", Ambient);
+            shader.SetVector3($"pointLights[{PointLightID}].diffuse", Diffuse);
+            shader.SetVector3($"pointLights[{PointLightID}].specular", LightColor);
+            shader.SetFloat($"pointLights[{PointLightID}].constant", 1.0f);
+            shader.SetFloat($"pointLights[{PointLightID}].linear", 0.09f);
+            shader.SetFloat($"pointLights[{PointLightID}].quadratic", 0.032f);
+            shader.SetVector3("lightColor", LightColor);
+        }
+        public void DrawMesh() => _mesh.Draw();
+    }
+}
