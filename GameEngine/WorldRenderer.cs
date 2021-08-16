@@ -68,7 +68,7 @@ namespace GameEngine
         {
             shader.SetInt("material.texture_diffuse0", 0);
             shader.SetInt("material.texture_specular0", 1);
-            shader.SetFloat("material.shininess", 16.0f);
+            shader.SetFloat("material.shininess", 32.0f);
             foreach (var item in GameObjects)
             {
                 item.Render(shader);
@@ -78,6 +78,7 @@ namespace GameEngine
         {
             shader.SetMatrix4("projection", camera.GetProjectionMatrix());
             shader.SetMatrix4("view", camera.GetViewMatrix());
+            shader.SetVector3("viewPos", camera.Position);
         }
         public void Update()
         {

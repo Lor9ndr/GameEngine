@@ -50,8 +50,10 @@ namespace GameEngine
         private Shader LightBoxShader;
         private DeferredShading _ds;
 
+        private ShadowBuffers _shadows;
 
         private static Texture _lightTexture = Texture.LoadFromFile("../../../Resources/Textures/blub.png", "texture_diffuse", string.Empty);
+        private DirectLight _sun;
 
         #endregion
 
@@ -65,11 +67,12 @@ namespace GameEngine
         public const string TERRAIN_PATH = OBJ_PATH + "Terrain/terrain1.fbx";
         public const string SKYBOX_TEXTURES_PATH = TEXTURES_PATH + "SkyBox/";
 
-        public const string SHADER_PATH = "../../../Shaders/";
-        public const string SIMPLE_SHADER = SHADER_PATH +"SimpleShader";
-        public const string DEFERRED_RENDER_PATH = SHADER_PATH + "DeferredShading/";
-        public const string ANOTHER_SHADER_PATH = DEFERRED_RENDER_PATH + "Another/";
-        public const string SKYBOX_SHADER_PATH = SHADER_PATH + "SkyBox/SkyBox";
+        public const string SHADERS_PATH = "../../../Shaders/";
+        public const string SIMPLE_SHADER = SHADERS_PATH +"SimpleShader";
+        public const string DEFERRED_RENDER_PATH = SHADERS_PATH + "DeferredShading/";
+        public const string ANOTHER_SHADERS_PATH = DEFERRED_RENDER_PATH + "Another/";
+        public const string SKYBOX_SHADER_PATH = SHADERS_PATH + "SkyBox/SkyBox";
+        public const string SHADOW_SHADERS_PATH = SHADERS_PATH + "ShadowShaders/";
 
         public const int WIDTH = 1920;
         public const int HEIGHT = 1080;
@@ -111,12 +114,12 @@ namespace GameEngine
             #endregion
 
             #region Lights
-            DirectLight directLight = new DirectLight(Cube.GetMesh()
-                , position: new Vector3(0, 100, 0)
+            _sun = new DirectLight(Cube.GetMesh()
+                , position: new Vector3(0, 10, 0)
                 , ambient: new Vector3(0.6f)
                 , diffuse: new Vector3(1f)
                 , lightColor: new Vector3(1)
-                , direction: new Vector3(0)
+                , direction: new Vector3(1,0,2)
                 , scale: new Vector3(1));
             SpotLight sl = new SpotLight(_camera.Position
                             , ambient: new Vector3(0.0f, 0.0f, 0.0f)
@@ -124,7 +127,7 @@ namespace GameEngine
                             , lightColor: new Vector3(1)
                             , scale: new Vector3(1));
             _lights.Add(sl);
-            _lights.Add(directLight);
+            _lights.Add(_sun);
 
             for (int i = 0; i < 32; i++)
             {
@@ -151,17 +154,19 @@ namespace GameEngine
             CursorGrabbed = true;
             base.OnLoad();
             _camera.Enable(this);
-            _ds = new DeferredShading(_worldRenderer);
-            _ds.Setup();
+            _shadows = new ShadowBuffers(_worldRenderer);
+            _shadows.Setup();
         }
 
         protected override void OnRenderFrame(FrameEventArgs args)
         {
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            GL.Enable(EnableCap.CullFace);
-
-            _worldRenderer.Render(_camera, SimpleShader);
+/*            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            GL.Enable(EnableCap.CullFace);*/
+            //_worldRenderer.Render(_camera, SimpleShader);
+            _shadows.RenderBuffer(_camera);
+#if DEBUG
             _worldRenderer.RenderLights(_camera, LightBoxShader, true);
+#endif
             SwapBuffers();
         }
 
@@ -174,10 +179,11 @@ namespace GameEngine
             $" Lights: {_lights.Count}, " +
             $"CAMERAPOS: {_camera.Position}";
             _worldRenderer.Update();
-            foreach (var item in _lights)
+            foreach (var item in _lights.OfType<PointLight>())
             {
                 item.Position.Z += MathF.Sin(DeltaTime) * 0.5f;
             }
+
             Random rd = new Random();
           
             _time += args.Time;
@@ -227,18 +233,23 @@ namespace GameEngine
             }
             if (Keyboard.IsKeyDown(Keys.Up))
             {
-                foreach (var item in _worldRenderer.Lights)
-                {
-                    item.SetAmbient(new Vector3(0.01f));
-                }
+
+                _shadows.FarPlane += 0.1f;
+                /* foreach (var item in _worldRenderer.Lights)
+                 {
+                     item.SetAmbient(new Vector3(0.01f));
+                 }*/
             }
             if (Keyboard.IsKeyDown(Keys.Down))
             {
-                foreach (var item in _worldRenderer.Lights)
+                _shadows.FarPlane -= 0.1f;
+
+                /*foreach (var item in _worldRenderer.Lights)
                 {
                     item.SetAmbient(new Vector3(-0.01f));
-                }
+                }*/
             }
+
         }
 
 

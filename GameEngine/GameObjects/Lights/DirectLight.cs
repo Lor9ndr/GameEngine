@@ -22,11 +22,14 @@ namespace GameEngine.GameObjects.Lights
         public override void Render(Shader shader)
         {
             SetupModel(shader);
+            shader.SetVector3("dirLight.position", Position);
             shader.SetVector3("dirLight.direction", Direction);
             shader.SetVector3($"dirLight.ambient", Ambient);
             shader.SetVector3($"dirLight.diffuse", Diffuse);
             shader.SetVector3($"dirLight.specular", LightColor);
+#if DEBUG
             _mesh.Draw();
+#endif
         }
     }
 }

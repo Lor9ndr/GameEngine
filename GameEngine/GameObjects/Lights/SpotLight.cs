@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace GameEngine.GameObjects.Lights
 {
-    public class SpotLight : DirectLight
+    public class SpotLight : Light
     {
         public SpotLight( Vector3 position, Vector3 ambient, Vector3 diffuse, Vector3 lightColor, 
             Vector3 direction = default, Vector3 rotation = default, Vector3 scale = default, Mesh mesh = null, float velocity = 0, Matrix4 model = default) 

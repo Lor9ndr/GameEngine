@@ -22,7 +22,6 @@ namespace GameEngine.GameObjects
         }
         public void Render(Shader shader)
         {
-            GL.BindVertexArray(ObjectSetupper.VAO.Vao);
             int diffuseNr = 0;
             int specularNr = 0;
             int normalNr = 0;

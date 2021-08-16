@@ -17,7 +17,7 @@ namespace GameEngine.GameObjects.Lights
 
         protected Mesh _mesh;
         public Light(Mesh mesh, Vector3 position, Vector3 ambient, Vector3 diffuse,Vector3 lightColor,
-             Vector3 direction= default, Vector3 rotation = default, Vector3 scale = default, float velocity = default, Matrix4 model = default) 
+             Vector3 direction = default, Vector3 rotation = default, Vector3 scale = default, float velocity = default, Matrix4 model = default) 
             : base(position, direction, rotation, scale, velocity, model)
         {
             _mesh = mesh;
