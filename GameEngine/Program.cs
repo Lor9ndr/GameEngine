@@ -6,7 +6,7 @@ namespace GameEngine
 {
     class Program
     {
-        [MTAThread]
+        [STAThread]
         static void Main(string[] args)
         {
             var nativeWindowSettings = new NativeWindowSettings()

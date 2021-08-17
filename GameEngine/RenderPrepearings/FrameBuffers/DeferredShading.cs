@@ -17,7 +17,7 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
         Shader shaderGeometryPass;
         Shader shaderLightingPass;
         Shader shaderLightBox;
-        private WorldRenderer _world;
+        private readonly WorldRenderer _world;
         private int _gBuffer;
         private int _gPosition;
         private int _gNormal;

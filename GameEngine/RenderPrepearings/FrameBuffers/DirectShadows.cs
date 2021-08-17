@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace GameEngine.RenderPrepearings.FrameBuffers
 {
-    public class ShadowBuffers
+    public class DirectShadows
     {
         #region Private Properties
         private int _depthMapFBO;
@@ -19,30 +19,34 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
         private Shader _depthShader;
         private Shader _lightShader;
         private Shader _debugShader;
-        private DirectLight _dirLight;
         private Mesh _debugScreen = FullScreenQuad.GetQuad(); 
         private WorldRenderer _wr;
+        private DirectLight _dirLight;
+        private List<SpotLight> _spotLights;
+        private TextureUnit ShadowTextureUnit = TextureUnit.Texture31;
+
         #endregion
 
         #region Public Properties
-        public Vector2i ShadowSize = new Vector2i(1024, 1024);
+        public Vector2i ShadowSize = new Vector2i(4096, 4096);
         public float NearPlane = 0.1f;
-        public float FarPlane = 7.5f;
+        public float FarPlane = 100000f;
         #endregion
 
         #region Constructors
-        public ShadowBuffers(int shadowWidth, int shadowHeight, WorldRenderer wr)
+        public DirectShadows(int shadowWidth, int shadowHeight, WorldRenderer wr)
             :this(wr)
         {
             ShadowSize = new Vector2i(shadowWidth, shadowHeight);
 
         }
-        public ShadowBuffers(WorldRenderer wr)
+        public DirectShadows(WorldRenderer wr)
         {
             _wr = wr;
             _dirLight = _wr.Lights.OfType<DirectLight>().FirstOrDefault();
+            _spotLights = _wr.Lights.OfType<SpotLight>().ToList();
         }
-        public ShadowBuffers(Vector2i shadowSize, WorldRenderer wr)
+        public DirectShadows(Vector2i shadowSize, WorldRenderer wr)
             :this(wr)
         {
             ShadowSize = shadowSize;
@@ -56,11 +60,11 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
 
             _depthMap = GL.GenTexture();
             GL.BindTexture(TextureTarget.Texture2D, _depthMap);
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.DepthComponent, ShadowSize.X, ShadowSize.Y, 0, PixelFormat.DepthComponent, PixelType.Float, (IntPtr)null);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.Repeat);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.Repeat);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.DepthComponent16, ShadowSize.X, ShadowSize.Y, 0, PixelFormat.DepthComponent, PixelType.Float, (IntPtr)null);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToBorder);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToBorder);
             float[] borderColor = { 1.0f, 1.0f, 1.0f, 1.0f };
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBorderColor, borderColor);
 
@@ -78,47 +82,64 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
             _depthShader = new Shader(Game.SHADOW_SHADERS_PATH + "Depth.vs", Game.SHADOW_SHADERS_PATH + "Depth.fr");
             _lightShader = new Shader(Game.SHADOW_SHADERS_PATH + "SimpleShader.vs", Game.SHADOW_SHADERS_PATH + "SimpleShader.fr");
             _debugShader = new Shader(Game.SHADOW_SHADERS_PATH + "DepthScreen.vs", Game.SHADOW_SHADERS_PATH + "DepthScreen.fr");
+            _lightShader.SetInt("material.texture_diffuse0", 0);
+            _lightShader.SetInt("shadowMap", 31);
+            //GL.Hint(HintTarget.PerspectiveCorrectionHint, HintMode.Nicest);
 
 
         }
 
         public void RenderBuffer(Camera camera)
         {
+            GL.ClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.Enable(EnableCap.CullFace);
             GL.CullFace(CullFaceMode.Back);
-            GL.ClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             GL.Viewport(0, 0, ShadowSize.X, ShadowSize.Y);
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, _depthMapFBO);
             GL.Clear(ClearBufferMask.DepthBufferBit);
-            ConfigureShaderAndMatrices(_depthShader);
+            ConfigureShaderAndMatrices(_depthShader, camera, _dirLight);
+            foreach (var item in _spotLights)
+            {
+                ConfigureShaderAndMatrices(_depthShader, camera, item);
+            }
             _wr.Render(camera, _depthShader);
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
 
-            /*_debugShader.Use();
-            _debugShader.SetFloat("near_plane", NearPlane);
-            _debugShader.SetFloat("far_plane", FarPlane);
-            GL.ActiveTexture(TextureUnit.Texture0);
-            GL.BindTexture(TextureTarget.Texture2D, _depthMap);
-            _debugScreen.Draw(PrimitiveType.TriangleStrip);
-*/
+            /*            _debugShader.Use();
+                        _debugShader.SetFloat("near_plane", NearPlane);
+                        _debugShader.SetFloat("far_plane", FarPlane);
+                        GL.ActiveTexture(ShadowTextureUnit);
+                        GL.BindTexture(TextureTarget.Texture2D, _depthMap);
+                        _debugScreen.Draw(PrimitiveType.TriangleStrip);
+            */
+
             GL.Viewport(0, 0, Game.WIDTH, Game.HEIGHT);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            ConfigureShaderAndMatrices(_lightShader);
-            GL.ActiveTexture(TextureUnit.Texture0);
+            ConfigureShaderAndMatrices(_depthShader, camera, _dirLight);
+            foreach (var item in _spotLights)
+            {
+                ConfigureShaderAndMatrices(_depthShader, camera, item);
+            }
+            GL.ActiveTexture(ShadowTextureUnit);
             GL.BindTexture(TextureTarget.Texture2D, _depthMap);
             _wr.Render(camera, _lightShader);
         }
         #endregion
-        private void ConfigureShaderAndMatrices(Shader shader)
+
+        #region Private Methods
+        private void ConfigureShaderAndMatrices(Shader shader, Camera camera, Light light)
         {
-            Matrix4 lightProjection = Matrix4.CreateOrthographicOffCenter(10, -10, 10, -10,  NearPlane, FarPlane);
-            Matrix4 lightView = Matrix4.LookAt(_dirLight.Position, _dirLight.Direction, Vector3.UnitY);
+
+            //Matrix4 lightProjection = Matrix4.CreateOrthographicOffCenter(-FarPlane, -FarPlane, FarPlane, -FarPlane, NearPlane, FarPlane);
+            Matrix4 lightProjection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(120), ShadowSize.X/ShadowSize.Y, NearPlane, FarPlane);
+            Matrix4 lightView = Matrix4.LookAt(light.Position, light.Direction * FarPlane, Vector3.UnitY);
             Matrix4 lightSpaceMatrix =  lightView * lightProjection;
             shader.Use();
             shader.SetMatrix4("lightSpaceMatrix", lightSpaceMatrix);
             shader.SetFloat("far_plane", FarPlane);
             shader.SetFloat("near_plane", NearPlane);
         }
+        #endregion
     }
 }

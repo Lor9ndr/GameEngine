@@ -46,19 +46,18 @@ namespace GameEngine.GameObjects
             var fragmentShader = GL.CreateShader(ShaderType.FragmentShader);
             GL.ShaderSource(fragmentShader, shaderSource);
             CompileShader(fragmentShader);
-            int geometryShader = 0;
 
             shaderSource = File.ReadAllText(geomPath);
-            geometryShader = GL.CreateShader(ShaderType.GeometryShader);
+            int geometryShader  = GL.CreateShader(ShaderType.GeometryShader);
             GL.ShaderSource(geometryShader, shaderSource);
             CompileShader(geometryShader);
+
+
+            // These 3 shaders must then be merged into a shader program, which can then be used by OpenGL.
+            // To do this, create a program...
             Handle = GL.CreateProgram();
 
-
-            // These two shaders must then be merged into a shader program, which can then be used by OpenGL.
-            // To do this, create a program...
-
-            // Attach both shaders...
+            // Attach  shaders...
             GL.AttachShader(Handle, vertexShader);
             GL.AttachShader(Handle, fragmentShader);
 
@@ -86,7 +85,7 @@ namespace GameEngine.GameObjects
             UniformLocations = new Dictionary<string, int>();
 
             // Loop over all the uniforms,
-            for (var i = 0; i < numberOfUniforms; i++)
+            for (var i = 0; i < numberOfUniforms ; i++)
             {
                 // get the name of this uniform,
                 var key = GL.GetActiveUniform(Handle, i, out _, out _);
@@ -304,12 +303,16 @@ namespace GameEngine.GameObjects
             GL.UseProgram(Handle);
             if (CheckUniformContains(name))
             {
-                GL.UniformMatrix4(UniformLocations[name], true, ref data);
+                GL.UniformMatrix4(UniformLocations[name], false, ref data);
             }
-           /* else
+            else
             {
-                Logger.Write($"Name: {name} Not Found in shader {_path}");
-            }*/
+                GL.UniformMatrix4(GetUniformLocation(name), false, ref data);
+            }
+            /* else
+             {
+                 Logger.Write($"Name: {name} Not Found in shader {_path}");
+             }*/
         }
 
         public bool CheckUniformContains(string uniform) => UniformLocations.ContainsKey(uniform);
@@ -326,6 +329,7 @@ namespace GameEngine.GameObjects
             {
                 GL.Uniform3(UniformLocations[name], data);
             }
+            
             /*else
             {
                 Logger.Write($"Name: {name} Not Found in shader {_path}");

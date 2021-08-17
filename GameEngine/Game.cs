@@ -42,18 +42,20 @@ namespace GameEngine
         private static double _time;
         private static float _deltaTime;
         private Camera _camera;
-        private List<IRenderable> _models = new List<IRenderable>();
-        private List<Light> _lights = new List<Light>();
+        private readonly List<IRenderable> _models = new();
+        private List<Light> _lights = new();
         private WorldRenderer _worldRenderer;
 
         private Shader SimpleShader;
         private Shader LightBoxShader;
         private DeferredShading _ds;
 
-        private ShadowBuffers _shadows;
+        private DirectShadows _directShadows;
+        private PointShadows _pointShadows;
 
         private static Texture _lightTexture = Texture.LoadFromFile("../../../Resources/Textures/blub.png", "texture_diffuse", string.Empty);
         private DirectLight _sun;
+        internal static int Shadows = 1;
 
         #endregion
 
@@ -72,7 +74,8 @@ namespace GameEngine
         public const string DEFERRED_RENDER_PATH = SHADERS_PATH + "DeferredShading/";
         public const string ANOTHER_SHADERS_PATH = DEFERRED_RENDER_PATH + "Another/";
         public const string SKYBOX_SHADER_PATH = SHADERS_PATH + "SkyBox/SkyBox";
-        public const string SHADOW_SHADERS_PATH = SHADERS_PATH + "ShadowShaders/";
+        public const string SHADOW_SHADERS_PATH = SHADERS_PATH + "ShadowShaders/DirectShadows/";
+        public const string POINT_SHADOW_SHADERS_PATH = SHADERS_PATH + "ShadowShaders/PointShadows/";
 
         public const int WIDTH = 1920;
         public const int HEIGHT = 1080;
@@ -97,16 +100,15 @@ namespace GameEngine
                new Vector3(0),
                new Vector3(rd.Next(-100, 100)),
                new Vector3(rd.Next(-10, 10)),
-               new Vector3(0.5f), 0));
+               new Vector3(1f), 0));
             for (int i = 0; i < 10; i++)
             {
-                var pos = new Vector3(rd.Next(-100, 10), rd.Next(-70, 10) * (float)_time, rd.Next(-50, 70));
+                var pos = new Vector3(rd.Next(-8, 8), rd.Next(0), rd.Next(-15,16));
                 _models.Add(new Model
-                (NANOSUIT_PATH
-                ,
+                (NANOSUIT_PATH,
                 pos,
                 new Vector3(rd.Next(-100, 100)),
-                new Vector3(rd.Next(-10, 10)),
+                new Vector3(rd.Next(-100, 100)),
                 new Vector3(0.5f), 0));
 
             }
@@ -115,11 +117,11 @@ namespace GameEngine
 
             #region Lights
             _sun = new DirectLight(Cube.GetMesh()
-                , position: new Vector3(0, 10, 0)
+                , position: new Vector3(334.22018f, 623.31146f, -606.2634f)
                 , ambient: new Vector3(0.6f)
                 , diffuse: new Vector3(1f)
                 , lightColor: new Vector3(1)
-                , direction: new Vector3(1,0,2)
+                , direction: new Vector3(370.26108f, -4.116751f,-925.44934f)
                 , scale: new Vector3(1));
             SpotLight sl = new SpotLight(_camera.Position
                             , ambient: new Vector3(0.0f, 0.0f, 0.0f)
@@ -129,9 +131,9 @@ namespace GameEngine
             _lights.Add(sl);
             _lights.Add(_sun);
 
-            for (int i = 0; i < 32; i++)
+            for (int i = 0; i < 1; i++)
             {
-                var position = new Vector3(rd.Next(-30,15), rd.Next(-20, 10), rd.Next(-30, -30));
+               // var position = new Vector3(, rd.Next(5, 10), rd.Next(-15, 15));
                 var resultX = rd.NextFloat(0, 1);
                 var resultY = rd.NextFloat(0, 1);
                 var resultZ = rd.NextFloat(0, 1);
@@ -139,31 +141,33 @@ namespace GameEngine
                     (new PointLight
                         (
                             Cube.GetMesh()
-                            , position
-                            , ambient: new Vector3(0.05f)
-                            , diffuse: new Vector3(0.8f)
-                            , lightColor: new Vector3(resultX, resultY, resultZ)
+                            , new Vector3(0, 7, 0)
+                            , ambient: new Vector3(1f)
+                            , diffuse: new Vector3(1f)
+                            , lightColor: new Vector3(1)
                             , scale: new Vector3(1)
                         )
                     ); ;
             }
-            var ter = new Model(TERRAIN_PATH, new Vector3(0), new Vector3(0), new Vector3(0), new Vector3(0.05f),0);
+            var ter = new Model(TERRAIN_PATH, new Vector3(0), new Vector3(0), new Vector3(0), new Vector3(0.05f),0, reverseNormals:false);
             #endregion
             _models.Add(ter);
             _worldRenderer = new WorldRenderer(_models, _lights);
             CursorGrabbed = true;
             base.OnLoad();
             _camera.Enable(this);
-            _shadows = new ShadowBuffers(_worldRenderer);
-            _shadows.Setup();
+            /*_directShadows = new DirectShadows(_worldRenderer);
+            _directShadows.Setup();*/
+            _pointShadows = new PointShadows(_worldRenderer);
+            _pointShadows.Setup();
         }
 
         protected override void OnRenderFrame(FrameEventArgs args)
         {
-/*            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            GL.Enable(EnableCap.CullFace);*/
+            /*            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+                        GL.Enable(EnableCap.CullFace);*/
             //_worldRenderer.Render(_camera, SimpleShader);
-            _shadows.RenderBuffer(_camera);
+            _pointShadows.RenderBuffer(_camera);
 #if DEBUG
             _worldRenderer.RenderLights(_camera, LightBoxShader, true);
 #endif
@@ -181,11 +185,13 @@ namespace GameEngine
             _worldRenderer.Update();
             foreach (var item in _lights.OfType<PointLight>())
             {
-                item.Position.Z += MathF.Sin(DeltaTime) * 0.5f;
+                item.Position.X = (float)(10 * Math.Sin(Time));
+                item.Position.Z = (float)(10 * Math.Cos(Time)); 
             }
+            Console.WriteLine($"DeltaTime: {DeltaTime}");
+            Console.WriteLine($"Time: {Time}");
 
-            Random rd = new Random();
-          
+
             _time += args.Time;
             _deltaTime = (float)_time - (float)oldTimeSinceStart;
             HandleKeyBoard();
@@ -233,21 +239,21 @@ namespace GameEngine
             }
             if (Keyboard.IsKeyDown(Keys.Up))
             {
-
-                _shadows.FarPlane += 0.1f;
-                /* foreach (var item in _worldRenderer.Lights)
-                 {
-                     item.SetAmbient(new Vector3(0.01f));
-                 }*/
+                Shadows = 1;
             }
             if (Keyboard.IsKeyDown(Keys.Down))
             {
-                _shadows.FarPlane -= 0.1f;
+                Shadows = 0;
 
-                /*foreach (var item in _worldRenderer.Lights)
-                {
-                    item.SetAmbient(new Vector3(-0.01f));
-                }*/
+            }
+            if (Keyboard.IsKeyDown(Keys.Left))
+            {
+                _lights.OfType<PointLight>().ToList()[0].Position += new Vector3(0.01f,0,0);
+
+            }
+            if (Keyboard.IsKeyDown(Keys.Right))
+            {
+                _lights.OfType<PointLight>().ToList()[0].Position -= new Vector3(0.01f,0,0);
             }
 
         }
@@ -256,69 +262,3 @@ namespace GameEngine
         #endregion
     }
 }
-/*            _gBuffer.BindForGeometryPass();
-            GL.Enable(EnableCap.DepthTest);
-
-            GL.CullFace(CullFaceMode.Back);
-
-            GL.ClearColor(0, 0, 0, 1);
-            GL.ClearDepth(1.0f);
-
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-
-            GeomShader.Use();
-            GeomShader.SetMatrix4("view", _camera.GetViewMatrix());
-            GeomShader.SetVector3("AmbientColor", new Vector3(Color4.White.R, Color4.White.G, Color4.White.B));
-            GeomShader.SetFloat("AmbientPower", ((float)MathF.Sin(1 * 6) + 1) / 2f);
-            GeomShader.SetVector3("AmbientDirection", Vector3.One);
-            _worldRenderer.RenderObjects(_camera, GeomShader);
-            GL.Disable(EnableCap.DepthTest);
-
-            //Light blub icon rendering
-
-
-
-            GL.Enable(EnableCap.Blend);
-            GL.BlendEquation(BlendEquationMode.FuncAdd);
-            GL.BlendFunc(BlendingFactor.One, BlendingFactor.One);
-
-            GL.CullFace(CullFaceMode.Front);
-            _gBuffer.BindForLightPass();
-            PointLightShader.Use();
-            PointLightShader.SetVector2("ScreenSize", new Vector2(WIDTH, HEIGHT));
-            PointLightShader.SetInt("PositionBuffer", _gBuffer.PositionTexture);
-            PointLightShader.SetInt("NormalBuffer", _gBuffer.NormalTexture);
-            PointLightShader.SetFloat("LightRadius", 60);
-            PointLightShader.SetVector3("LightCenter", new Vector3(0));
-            PointLightShader.SetFloat("LightIntensity", 2);
-
-            _worldRenderer.RenderLights(_camera, PointLightShader);
-            GL.Disable(EnableCap.Blend);
-            _gBuffer.Restore();
-
-            if (Keyboard.IsKeyDown(Keys.F1))
-            {
-                _gBuffer.DumpToScreen(WIDTH, HEIGHT);
-            }
-            else
-            {
-                GL.ClearColor(Color4.CornflowerBlue);
-                GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-
-                GL.CullFace(CullFaceMode.Back);
-                FinalCombineShader.Use();
-                FinalCombineShader.SetInt("ColorBuffer", _gBuffer.DiffuseTexture);
-                FinalCombineShader.SetInt("LightBuffer", _gBuffer.LightTexture);
-                _fsQuad.Draw(PrimitiveType.Triangles);
-
-                GL.Enable(EnableCap.Blend);
-                GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
-                GL.CullFace(CullFaceMode.Front);
-
-                FlatShader.Use();
-                _worldRenderer.RenderLights(_camera, FlatShader);
-
-                GL.Disable(EnableCap.Blend);
-
-                //_gBuffer.BlitResult(WIDTH, HEIGHT);
-            }*/

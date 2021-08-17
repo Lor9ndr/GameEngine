@@ -14,25 +14,24 @@ namespace GameEngine
 {
     public class WorldRenderer
     {
-        public SkyBox sb;
+        public SkyBox SkyBox;
         public List<IRenderable> GameObjects;
         public List<Light> Lights;
 
         public WorldRenderer(List<IRenderable> gameObjects)
         {
             GameObjects = gameObjects;
-            sb = new SkyBox();
+            SkyBox = new SkyBox();
         }
-        //TODO: Рефактор кода нужен
         public WorldRenderer(List<IRenderable> gameObjects, List<Light> aLights)
         {
             GameObjects = gameObjects;
             Lights = aLights;
-            sb = new SkyBox();
+            SkyBox = new SkyBox();
         }
         public void Render(Camera camera, Shader shader)
         {
-            sb.Render(camera);
+            SkyBox.Render(camera);
             SetupCamera(camera, shader);
             RenderObjects(camera, shader);
             RenderLights(camera, shader);
@@ -58,7 +57,7 @@ namespace GameEngine
                 {
                     if (item.GetType() == typeof(PointLight))
                     {
-                        (item as PointLight).DrawMesh();
+                        (item as PointLight).DrawMesh(shader);
                     }
                 }
             }
@@ -66,8 +65,6 @@ namespace GameEngine
 
         public void RenderObjects(Camera camera, Shader shader)
         {
-            shader.SetInt("material.texture_diffuse0", 0);
-            shader.SetInt("material.texture_specular0", 1);
             shader.SetFloat("material.shininess", 32.0f);
             foreach (var item in GameObjects)
             {

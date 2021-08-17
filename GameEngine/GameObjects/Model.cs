@@ -4,6 +4,7 @@ using GameEngine.Enums;
 using GameEngine.GameObjects.Base;
 using GameEngine.Intefaces;
 using GameEngine.Structs;
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using System;
 using System.Collections.Generic;
@@ -22,14 +23,16 @@ namespace GameEngine.GameObjects
         private static readonly List<Texture> _loadedTextures = new();
         private readonly string directory;
         private readonly string _path;
+        private bool _reverseNormals = false;
 
 
-        public Model(string path, Vector3 position, Vector3 direction, Vector3 rotation, Vector3 scale, float velocity, Matrix4 model = default)
+        public Model(string path, Vector3 position, Vector3 direction, Vector3 rotation, Vector3 scale, float velocity,bool reverseNormals = false, Matrix4 model = default)
             : base(position, direction, rotation, scale, velocity, model)
         {
             directory = path.Substring(0, path.LastIndexOf('/'));
             Position = position;
             _path = path;
+            _reverseNormals = reverseNormals;
             LoadModel();
         }
 
@@ -44,10 +47,17 @@ namespace GameEngine.GameObjects
             var s = Matrix4.CreateScale(Scale);
             _model = r1 * r2 * r3 * s * t2;
             shader.SetMatrix4("model", _model);
+            if (_reverseNormals)
+            {
+                shader.SetInt("reverse_normals", 1);
+                GL.Disable(EnableCap.CullFace);
+            }
             foreach (var item in _meshes)
             {
                 item.Render(shader);
             }
+            GL.Enable(EnableCap.CullFace);
+            shader.SetInt("reverse_normals", 0);
         }
 
         public void LoadModel()

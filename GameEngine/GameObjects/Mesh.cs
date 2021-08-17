@@ -40,6 +40,7 @@ namespace GameEngine.GameObjects
                     number = heightNr++.ToString();
                 Textures[i].Use(TextureUnit.Texture0 + i);
                 shader.SetInt($"material.{name + number}", i);
+
             }
             base.Draw();
         }
