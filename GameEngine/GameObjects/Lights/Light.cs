@@ -14,9 +14,10 @@ namespace GameEngine.GameObjects.Lights
         public Vector3 LightColor;
         public Vector3 Ambient;
         public Vector3 Diffuse;
+        public Vector3 Specular;
 
         protected Mesh _mesh;
-        public Light(Mesh mesh, Vector3 position, Vector3 ambient, Vector3 diffuse,Vector3 lightColor,
+        public Light(Mesh mesh, Vector3 position, Vector3 ambient, Vector3 diffuse, Vector3 specular,Vector3 lightColor,
              Vector3 direction = default, Vector3 rotation = default, Vector3 scale = default, float velocity = default, Matrix4 model = default) 
             : base(position, direction, rotation, scale, velocity, model)
         {
@@ -24,6 +25,7 @@ namespace GameEngine.GameObjects.Lights
             LightColor = lightColor;
             Ambient = ambient;
             Diffuse = diffuse;
+            Specular = specular;
 
         }
         public virtual void SetupModel(Shader shader)

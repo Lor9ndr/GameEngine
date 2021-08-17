@@ -121,19 +121,21 @@ namespace GameEngine
                 , ambient: new Vector3(0.6f)
                 , diffuse: new Vector3(1f)
                 , lightColor: new Vector3(1)
-                , direction: new Vector3(370.26108f, -4.116751f,-925.44934f)
+                , direction: new Vector3(370.26108f, -4.116751f, -925.44934f)
+                , specular: new Vector3(1.0f)
                 , scale: new Vector3(1));
             SpotLight sl = new SpotLight(_camera.Position
                             , ambient: new Vector3(0.0f, 0.0f, 0.0f)
                             , diffuse: new Vector3(1.0f, 1.0f, 1.0f)
                             , lightColor: new Vector3(1)
+                            , specular: new Vector3(0.3f)
                             , scale: new Vector3(1));
             _lights.Add(sl);
             _lights.Add(_sun);
 
-            for (int i = 0; i < 1; i++)
+            for (int i = 0; i < 2; i++)
             {
-               // var position = new Vector3(, rd.Next(5, 10), rd.Next(-15, 15));
+                var position = new Vector3(rd.Next(-10,10), rd.Next(5, 6), rd.Next(-10, 10));
                 var resultX = rd.NextFloat(0, 1);
                 var resultY = rd.NextFloat(0, 1);
                 var resultZ = rd.NextFloat(0, 1);
@@ -141,13 +143,14 @@ namespace GameEngine
                     (new PointLight
                         (
                             Cube.GetMesh()
-                            , new Vector3(0, 7, 0)
+                            , position
                             , ambient: new Vector3(1f)
                             , diffuse: new Vector3(1f)
-                            , lightColor: new Vector3(1)
+                            , lightColor: new Vector3(resultX, resultY, resultZ)
                             , scale: new Vector3(1)
+                            , specular: new Vector3(0.3f)
                         )
-                    ); ;
+                    );
             }
             var ter = new Model(TERRAIN_PATH, new Vector3(0), new Vector3(0), new Vector3(0), new Vector3(0.05f),0, reverseNormals:false);
             #endregion
@@ -186,10 +189,8 @@ namespace GameEngine
             foreach (var item in _lights.OfType<PointLight>())
             {
                 item.Position.X = (float)(10 * Math.Sin(Time));
-                item.Position.Z = (float)(10 * Math.Cos(Time)); 
+                item.Position.Z = (float)(10 * Math.Cos(Time));
             }
-            Console.WriteLine($"DeltaTime: {DeltaTime}");
-            Console.WriteLine($"Time: {Time}");
 
 
             _time += args.Time;

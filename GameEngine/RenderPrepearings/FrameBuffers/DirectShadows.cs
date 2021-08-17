@@ -84,7 +84,6 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
             _debugShader = new Shader(Game.SHADOW_SHADERS_PATH + "DepthScreen.vs", Game.SHADOW_SHADERS_PATH + "DepthScreen.fr");
             _lightShader.SetInt("material.texture_diffuse0", 0);
             _lightShader.SetInt("shadowMap", 31);
-            //GL.Hint(HintTarget.PerspectiveCorrectionHint, HintMode.Nicest);
 
 
         }

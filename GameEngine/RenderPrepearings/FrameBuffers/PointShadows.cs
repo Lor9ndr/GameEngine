@@ -14,11 +14,11 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
     public class PointShadows
     {
         public Vector2i ShadowSize = new Vector2i(2048, 2048);
-        public float NearPlane = 1f;
+        public float NearPlane = 0.1f;
         public float FarPlane = 25.0f;
 
         private WorldRenderer _wr;
-        private List<PointLight> _pointLights;
+        private List<Light> _pointLights = new List<Light>();
         private int _depthMapFBO;
         private int _depthCubeMap;
         private TextureUnit _shadowTextureUnit = TextureUnit.Texture30;
@@ -37,7 +37,7 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
         public PointShadows(WorldRenderer wr)
         {
             _wr = wr;
-            _pointLights = _wr.Lights.OfType<PointLight>().ToList();
+            _pointLights.AddRange(_wr.Lights.OfType<PointLight>().ToList());
         }
         public PointShadows(Vector2i shadowSize, WorldRenderer wr)
             : this(wr)
@@ -69,8 +69,10 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
         }
         public void RenderBuffer(Camera camera)
         {
-            _pointLights = _wr.Lights.OfType<PointLight>().ToList();
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
+            _pointLights.Clear();
+            _pointLights.AddRange(_wr.Lights.OfType<PointLight>().ToList());
+            _pointLights.AddRange(_wr.Lights.OfType<SpotLight>().ToList());
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit );
 
             List<List<Matrix4>> shadowTransforms = new List<List<Matrix4>>();
             foreach (var item in _pointLights)
@@ -79,12 +81,12 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
                 shadowTransforms.Add(
                 new List<Matrix4>()
                 {
-                    shadowProj * Matrix4.LookAt(item.Position, item.Position + new Vector3(1.0f, 0.0f, 0.0f), new Vector3(0.0f, -1.0f, 0.0f)) ,
-                    shadowProj * Matrix4.LookAt(item.Position, item.Position + new Vector3(-1.0f, 0.0f, 0.0f), new Vector3(0.0f, -1.0f, 0.0f)),
-                    shadowProj * Matrix4.LookAt(item.Position, item.Position + new Vector3(0.0f, 1.0f, 0.0f), new Vector3(0.0f, 0.0f, 1.0f)),
-                    shadowProj * Matrix4.LookAt(item.Position, item.Position + new Vector3(0.0f, -1.0f, 0.0f), new Vector3(0.0f, 0.0f, -1.0f)),
-                    shadowProj * Matrix4.LookAt(item.Position, item.Position + new Vector3(0.0f, 0.0f, 1.0f), new Vector3(0.0f, -1.0f, 0.0f)),
-                    shadowProj * Matrix4.LookAt(item.Position, item.Position + new Vector3(0.0f, 0.0f, -1.0f), new Vector3(0.0f, -1.0f, 0.0f)),
+                     Matrix4.LookAt(item.Position, item.Position + new Vector3(1.0f, 0.0f, 0.0f), new Vector3(0.0f, -1.0f, 0.0f)) * shadowProj ,
+                     Matrix4.LookAt(item.Position, item.Position + new Vector3(-1.0f, 0.0f, 0.0f), new Vector3(0.0f, -1.0f, 0.0f))* shadowProj,
+                     Matrix4.LookAt(item.Position, item.Position + new Vector3(0.0f, 1.0f, 0.0f), new Vector3(0.0f, 0.0f, 1.0f))* shadowProj,
+                     Matrix4.LookAt(item.Position, item.Position + new Vector3(0.0f, -1.0f, 0.0f), new Vector3(0.0f, 0.0f, -1.0f))* shadowProj,
+                    Matrix4.LookAt(item.Position, item.Position + new Vector3(0.0f, 0.0f, 1.0f), new Vector3(0.0f, -1.0f, 0.0f))* shadowProj,
+                     Matrix4.LookAt(item.Position, item.Position + new Vector3(0.0f, 0.0f, -1.0f), new Vector3(0.0f, -1.0f, 0.0f))* shadowProj,
                 });
             }
            

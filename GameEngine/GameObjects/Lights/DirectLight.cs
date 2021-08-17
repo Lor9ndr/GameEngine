@@ -9,9 +9,9 @@ namespace GameEngine.GameObjects.Lights
 {
     public class DirectLight : Light
     {
-        public DirectLight(Mesh mesh, Vector3 position, Vector3 ambient, Vector3 diffuse, Vector3 lightColor, 
+        public DirectLight(Mesh mesh, Vector3 position, Vector3 ambient, Vector3 diffuse,Vector3 specular, Vector3 lightColor, 
             Vector3 direction = default, Vector3 rotation = default, Vector3 scale = default, float velocity = 0, Matrix4 model = default)
-            : base(mesh, position, ambient, diffuse, lightColor, direction, rotation, scale, velocity, model)
+            : base(mesh, position, ambient, diffuse, lightColor, specular, direction, rotation, scale, velocity, model)
         {
             if (direction == default)
             {
