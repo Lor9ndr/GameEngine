@@ -21,16 +21,15 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
         private Shader _debugShader;
         private Mesh _debugScreen = FullScreenQuad.GetQuad(); 
         private WorldRenderer _wr;
-        private DirectLight _dirLight;
-        private List<SpotLight> _spotLights;
+        private List<Light> _lights = new List<Light>();
         private TextureUnit ShadowTextureUnit = TextureUnit.Texture31;
 
         #endregion
 
         #region Public Properties
-        public Vector2i ShadowSize = new Vector2i(4096, 4096);
-        public float NearPlane = 0.1f;
-        public float FarPlane = 100000f;
+        public Vector2i ShadowSize = new Vector2i(2048, 2048);
+        public float NearPlane = 1.0f;
+        public float FarPlane = 10000f;
         #endregion
 
         #region Constructors
@@ -43,8 +42,14 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
         public DirectShadows(WorldRenderer wr)
         {
             _wr = wr;
-            _dirLight = _wr.Lights.OfType<DirectLight>().FirstOrDefault();
-            _spotLights = _wr.Lights.OfType<SpotLight>().ToList();
+            foreach (var item in _wr.Lights)
+            {
+                if (item.GetType() == typeof(DirectLight))
+                {
+                    _lights.Add(item);
+                }
+            }
+            //_lights = _wr.Lights.Where(l => l.GetType() == typeof(SpotLight) || l.GetType() == typeof(DirectLight)).ToList();
         }
         public DirectShadows(Vector2i shadowSize, WorldRenderer wr)
             :this(wr)
@@ -79,9 +84,9 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
             else
             {
             }
-            _depthShader = new Shader(Game.SHADOW_SHADERS_PATH + "Depth.vs", Game.SHADOW_SHADERS_PATH + "Depth.fr");
-            _lightShader = new Shader(Game.SHADOW_SHADERS_PATH + "SimpleShader.vs", Game.SHADOW_SHADERS_PATH + "SimpleShader.fr");
-            _debugShader = new Shader(Game.SHADOW_SHADERS_PATH + "DepthScreen.vs", Game.SHADOW_SHADERS_PATH + "DepthScreen.fr");
+            _depthShader = new Shader(Game.DIRECT_SHADOW_SHADERS_PATH + "Depth.vs", Game.DIRECT_SHADOW_SHADERS_PATH + "Depth.fr");
+            _lightShader = new Shader(Game.DIRECT_SHADOW_SHADERS_PATH + "SimpleShader.vs", Game.DIRECT_SHADOW_SHADERS_PATH + "SimpleShader.fr");
+            _debugShader = new Shader(Game.DIRECT_SHADOW_SHADERS_PATH + "DepthScreen.vs", Game.DIRECT_SHADOW_SHADERS_PATH + "DepthScreen.fr");
             _lightShader.SetInt("material.texture_diffuse0", 0);
             _lightShader.SetInt("shadowMap", 31);
 
@@ -92,37 +97,36 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
         {
             GL.ClearColor(0.1f, 0.1f, 0.1f, 1.0f);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            GL.Enable(EnableCap.CullFace);
-            GL.CullFace(CullFaceMode.Back);
             GL.Viewport(0, 0, ShadowSize.X, ShadowSize.Y);
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, _depthMapFBO);
+            GL.Enable(EnableCap.DepthTest);
             GL.Clear(ClearBufferMask.DepthBufferBit);
-            ConfigureShaderAndMatrices(_depthShader, camera, _dirLight);
-            foreach (var item in _spotLights)
+            foreach (var item in _lights.OfType<DirectLight>())
             {
                 ConfigureShaderAndMatrices(_depthShader, camera, item);
             }
             _wr.Render(camera, _depthShader);
             GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
 
-            /*            _debugShader.Use();
-                        _debugShader.SetFloat("near_plane", NearPlane);
-                        _debugShader.SetFloat("far_plane", FarPlane);
-                        GL.ActiveTexture(ShadowTextureUnit);
-                        GL.BindTexture(TextureTarget.Texture2D, _depthMap);
-                        _debugScreen.Draw(PrimitiveType.TriangleStrip);
-            */
-
-            GL.Viewport(0, 0, Game.WIDTH, Game.HEIGHT);
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            ConfigureShaderAndMatrices(_depthShader, camera, _dirLight);
-            foreach (var item in _spotLights)
-            {
-                ConfigureShaderAndMatrices(_depthShader, camera, item);
-            }
+            // GL.Viewport(0, 0, Game.WIDTH, Game.HEIGHT);
+            _debugShader.Use();
+            _debugShader.SetFloat("near_plane", NearPlane);
+            _debugShader.SetFloat("far_plane", FarPlane);
             GL.ActiveTexture(ShadowTextureUnit);
             GL.BindTexture(TextureTarget.Texture2D, _depthMap);
-            _wr.Render(camera, _lightShader);
+            _debugScreen.Draw(PrimitiveType.TriangleStrip);
+
+            /*            GL.Viewport(0, 0, Game.WIDTH, Game.HEIGHT);
+                        GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+                        foreach (var item in _lights.OfType<DirectLight>())
+                        {
+                            ConfigureShaderAndMatrices(_lightShader, camera, item);
+
+                        }
+                        GL.ActiveTexture(ShadowTextureUnit);
+                        GL.BindTexture(TextureTarget.Texture2D, _depthMap);
+                        _wr.Render(camera, _lightShader);*//*
+                    */
         }
         #endregion
 
@@ -130,14 +134,14 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
         private void ConfigureShaderAndMatrices(Shader shader, Camera camera, Light light)
         {
 
-            //Matrix4 lightProjection = Matrix4.CreateOrthographicOffCenter(-FarPlane, -FarPlane, FarPlane, -FarPlane, NearPlane, FarPlane);
-            Matrix4 lightProjection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(120), ShadowSize.X/ShadowSize.Y, NearPlane, FarPlane);
-            Matrix4 lightView = Matrix4.LookAt(light.Position, light.Direction * FarPlane, Vector3.UnitY);
-            Matrix4 lightSpaceMatrix =  lightView * lightProjection;
+           Matrix4 lightProjection = Matrix4.CreateOrthographicOffCenter(-FarPlane, FarPlane, -FarPlane, FarPlane, NearPlane, FarPlane);
+           // Matrix4 lightProjection = Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(120), ShadowSize.X/ShadowSize.Y, NearPlane, FarPlane);
+            Matrix4 lightView = Matrix4.LookAt(light.Position , light.Direction, Vector3.UnitY);
+            Matrix4 lightSpaceMatrix =  lightProjection * lightView;
             shader.Use();
             shader.SetMatrix4("lightSpaceMatrix", lightSpaceMatrix);
-            shader.SetFloat("far_plane", FarPlane);
-            shader.SetFloat("near_plane", NearPlane);
+            shader.SetFloat("far_plane", NearPlane);
+            shader.SetFloat("near_plane", FarPlane);
         }
         #endregion
     }

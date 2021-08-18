@@ -26,7 +26,7 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
 
         private Shader _simpleShader = new Shader(Game.POINT_SHADOW_SHADERS_PATH + "SimpleShader.vs", Game.POINT_SHADOW_SHADERS_PATH + "SimpleShader.fr");
         private Shader _depthShader = new Shader(Game.POINT_SHADOW_SHADERS_PATH + "Depth.vs", Game.POINT_SHADOW_SHADERS_PATH + "Depth.fr", Game.POINT_SHADOW_SHADERS_PATH + "Depth.gs");
-        private Shader _debugShader = new Shader(Game.SHADOW_SHADERS_PATH + "DepthScreen.vs", Game.SHADOW_SHADERS_PATH + "DepthScreen.fr");
+        //private Shader _debugShader = new Shader(Game.SHADOW_SHADERS_PATH + "DepthScreen.vs", Game.SHADOW_SHADERS_PATH + "DepthScreen.fr");
 
         public PointShadows(int shadowWidth, int shadowHeight, WorldRenderer wr)
           : this(wr)
@@ -71,7 +71,6 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
         {
             _pointLights.Clear();
             _pointLights.AddRange(_wr.Lights.OfType<PointLight>().ToList());
-            _pointLights.AddRange(_wr.Lights.OfType<SpotLight>().ToList());
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit );
 
             List<List<Matrix4>> shadowTransforms = new List<List<Matrix4>>();
@@ -85,7 +84,7 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
                      Matrix4.LookAt(item.Position, item.Position + new Vector3(-1.0f, 0.0f, 0.0f), new Vector3(0.0f, -1.0f, 0.0f))* shadowProj,
                      Matrix4.LookAt(item.Position, item.Position + new Vector3(0.0f, 1.0f, 0.0f), new Vector3(0.0f, 0.0f, 1.0f))* shadowProj,
                      Matrix4.LookAt(item.Position, item.Position + new Vector3(0.0f, -1.0f, 0.0f), new Vector3(0.0f, 0.0f, -1.0f))* shadowProj,
-                    Matrix4.LookAt(item.Position, item.Position + new Vector3(0.0f, 0.0f, 1.0f), new Vector3(0.0f, -1.0f, 0.0f))* shadowProj,
+                     Matrix4.LookAt(item.Position, item.Position + new Vector3(0.0f, 0.0f, 1.0f), new Vector3(0.0f, -1.0f, 0.0f))* shadowProj,
                      Matrix4.LookAt(item.Position, item.Position + new Vector3(0.0f, 0.0f, -1.0f), new Vector3(0.0f, -1.0f, 0.0f))* shadowProj,
                 });
             }
@@ -96,11 +95,14 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
             GL.Clear(ClearBufferMask.DepthBufferBit);
 
             _depthShader.Use();
-
-            for (int i = 0; i < 6; i++)
+            for (int light = 0; light < shadowTransforms.Count; light++)
             {
-                _depthShader.SetMatrix4($"shadowMatrices[{i}]", shadowTransforms[0][i]);
+                for (int i = 0; i < 6; i++)
+                {
+                    _depthShader.SetMatrix4($"shadowMatrices[{i}]", shadowTransforms[light][i]);
+                }
             }
+           
             _depthShader.SetVector3("lightPos", _pointLights[0].Position);
             _depthShader.SetFloat("far_plane", FarPlane);
             _wr.Render(camera, _depthShader);

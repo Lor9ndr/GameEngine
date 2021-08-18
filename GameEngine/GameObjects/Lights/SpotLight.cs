@@ -9,11 +9,18 @@ namespace GameEngine.GameObjects.Lights
 {
     public class SpotLight : Light
     {
-        public SpotLight( Vector3 position, Vector3 ambient, Vector3 diffuse,Vector3 specular, Vector3 lightColor, 
+        private float _cutOff;
+
+        public float CutOff { get => MathF.Cos(MathHelper.DegreesToRadians(_cutOff)); set => _cutOff = value; }
+        private float outerCutOff;
+
+        public float OuterCutOff { get => MathF.Cos(MathHelper.DegreesToRadians(outerCutOff)); set => outerCutOff = value; }
+        public SpotLight( Vector3 position, Vector3 ambient, Vector3 diffuse,Vector3 specular, Vector3 lightColor,float cutOff,float outerCutOff,
             Vector3 direction = default, Vector3 rotation = default, Vector3 scale = default, Mesh mesh = null, float velocity = 0, Matrix4 model = default) 
             : base(mesh, position, ambient, diffuse, specular, lightColor, direction, rotation, scale, velocity, model)
         {
-
+            CutOff = cutOff;
+            OuterCutOff = outerCutOff;
         }
         public override void Render(Shader shader)
         {
@@ -27,8 +34,8 @@ namespace GameEngine.GameObjects.Lights
             shader.SetFloat("spotLight.constant", 1.0f);
             shader.SetFloat("spotLight.linear", 0.09f);
             shader.SetFloat("spotLight.quadratic", 0.032f);
-            shader.SetFloat("spotLight.cutOff", MathF.Cos(MathHelper.DegreesToRadians(12.5f)));
-            shader.SetFloat("spotLight.outerCutOff", MathF.Cos(MathHelper.DegreesToRadians(15.0f)));
+            shader.SetFloat("spotLight.cutOff", CutOff);
+            shader.SetFloat("spotLight.outerCutOff", CutOff);
         }
     }
 }

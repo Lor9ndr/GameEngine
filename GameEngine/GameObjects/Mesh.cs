@@ -38,9 +38,8 @@ namespace GameEngine.GameObjects
                     number = normalNr++.ToString();
                 else if (name == "texture_height")
                     number = heightNr++.ToString();
-                Textures[i].Use(TextureUnit.Texture0 + i);
                 shader.SetInt($"material.{name + number}", i);
-
+                Textures[i].Use(TextureUnit.Texture0 + i);
             }
             base.Draw();
         }

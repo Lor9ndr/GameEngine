@@ -74,8 +74,9 @@ namespace GameEngine
         public const string DEFERRED_RENDER_PATH = SHADERS_PATH + "DeferredShading/";
         public const string ANOTHER_SHADERS_PATH = DEFERRED_RENDER_PATH + "Another/";
         public const string SKYBOX_SHADER_PATH = SHADERS_PATH + "SkyBox/SkyBox";
-        public const string SHADOW_SHADERS_PATH = SHADERS_PATH + "ShadowShaders/DirectShadows/";
-        public const string POINT_SHADOW_SHADERS_PATH = SHADERS_PATH + "ShadowShaders/PointShadows/";
+        public const string SHADOW_SHADERS_PATH = SHADERS_PATH + "ShadowShaders/";
+        public const string DIRECT_SHADOW_SHADERS_PATH = SHADOW_SHADERS_PATH + "DirectShadows/";
+        public const string POINT_SHADOW_SHADERS_PATH = SHADOW_SHADERS_PATH + "PointShadows/";
 
         public const int WIDTH = 1920;
         public const int HEIGHT = 1080;
@@ -117,11 +118,11 @@ namespace GameEngine
 
             #region Lights
             _sun = new DirectLight(Cube.GetMesh()
-                , position: new Vector3(334.22018f, 623.31146f, -606.2634f)
+                , position: new Vector3(-26, 10, -161)
                 , ambient: new Vector3(0.6f)
                 , diffuse: new Vector3(1f)
-                , lightColor: new Vector3(1)
-                , direction: new Vector3(370.26108f, -4.116751f, -925.44934f)
+                , lightColor: new Vector3(0.6f)
+                , direction: new Vector3(0)
                 , specular: new Vector3(1.0f)
                 , scale: new Vector3(1));
             SpotLight sl = new SpotLight(_camera.Position
@@ -129,13 +130,15 @@ namespace GameEngine
                             , diffuse: new Vector3(1.0f, 1.0f, 1.0f)
                             , lightColor: new Vector3(1)
                             , specular: new Vector3(0.3f)
+                            , outerCutOff: 0.90f
+                            , cutOff: 0.90f
                             , scale: new Vector3(1));
             _lights.Add(sl);
             _lights.Add(_sun);
 
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < 3; i++)
             {
-                var position = new Vector3(rd.Next(-10,10), rd.Next(5, 6), rd.Next(-10, 10));
+                var position = new Vector3(rd.Next(-30,50), rd.Next(3, 10), rd.Next(-55, 55));
                 var resultX = rd.NextFloat(0, 1);
                 var resultY = rd.NextFloat(0, 1);
                 var resultZ = rd.NextFloat(0, 1);
@@ -170,7 +173,9 @@ namespace GameEngine
             /*            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
                         GL.Enable(EnableCap.CullFace);*/
             //_worldRenderer.Render(_camera, SimpleShader);
-            _pointShadows.RenderBuffer(_camera);
+           _pointShadows.RenderBuffer(_camera);
+            //_directShadows.RenderBuffer(_camera);
+
 #if DEBUG
             _worldRenderer.RenderLights(_camera, LightBoxShader, true);
 #endif
@@ -186,11 +191,11 @@ namespace GameEngine
             $" Lights: {_lights.Count}, " +
             $"CAMERAPOS: {_camera.Position}";
             _worldRenderer.Update();
-            foreach (var item in _lights.OfType<PointLight>())
+           /* foreach (var item in _lights.OfType<PointLight>())
             {
                 item.Position.X = (float)(10 * Math.Sin(Time));
                 item.Position.Z = (float)(10 * Math.Cos(Time));
-            }
+            }*/
 
 
             _time += args.Time;
@@ -240,21 +245,36 @@ namespace GameEngine
             }
             if (Keyboard.IsKeyDown(Keys.Up))
             {
-                Shadows = 1;
+                foreach (var item in _lights.OfType<PointLight>())
+                {
+                    item.Position += new Vector3(0, 0.1f, 0);
+                }
+
             }
             if (Keyboard.IsKeyDown(Keys.Down))
             {
-                Shadows = 0;
+                foreach (var item in _lights.OfType<PointLight>())
+                {
+                    item.Position -= new Vector3(0, 0.1f, 0);
+                }
+
 
             }
             if (Keyboard.IsKeyDown(Keys.Left))
             {
-                _lights.OfType<PointLight>().ToList()[0].Position += new Vector3(0.01f,0,0);
+                foreach (var item in _lights.OfType<PointLight>())
+                {
+                    item.Position += new Vector3(1, 0, 0);
+                }
 
             }
             if (Keyboard.IsKeyDown(Keys.Right))
             {
-                _lights.OfType<PointLight>().ToList()[0].Position -= new Vector3(0.01f,0,0);
+                foreach (var item in _lights.OfType<PointLight>())
+                {
+                    item.Position -= new Vector3(1,0,0);
+                }
+
             }
 
         }

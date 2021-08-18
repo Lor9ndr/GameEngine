@@ -24,15 +24,16 @@ namespace GameEngine.GameObjects
         private readonly string directory;
         private readonly string _path;
         private bool _reverseNormals = false;
+        private bool _enableCullFace;
 
-
-        public Model(string path, Vector3 position, Vector3 direction, Vector3 rotation, Vector3 scale, float velocity,bool reverseNormals = false, Matrix4 model = default)
+        public Model(string path, Vector3 position, Vector3 direction, Vector3 rotation, Vector3 scale, float velocity,bool reverseNormals = false,bool enableCullFace=true, Matrix4 model = default)
             : base(position, direction, rotation, scale, velocity, model)
         {
             directory = path.Substring(0, path.LastIndexOf('/'));
             Position = position;
             _path = path;
             _reverseNormals = reverseNormals;
+            _enableCullFace = enableCullFace;
             LoadModel();
         }
 
@@ -50,13 +51,12 @@ namespace GameEngine.GameObjects
             if (_reverseNormals)
             {
                 shader.SetInt("reverse_normals", 1);
-                GL.Disable(EnableCap.CullFace);
             }
+           
             foreach (var item in _meshes)
             {
                 item.Render(shader);
             }
-            GL.Enable(EnableCap.CullFace);
             shader.SetInt("reverse_normals", 0);
         }
 

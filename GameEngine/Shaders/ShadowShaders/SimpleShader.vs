@@ -1,22 +1,22 @@
 ﻿#version 450 core
-layout (location = 0) in highp vec3 aPos;
-layout (location = 1) in highp vec3 aNormal;
-layout (location = 2) in highp vec2 aTexCoords;
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aNormal;
+layout (location = 2) in vec2 aTexCoords;
 layout (location = 3) in vec3 aTangent;
 layout (location = 4) in vec3 aBitangent;
 
 
 out VS_OUT {
-    highp vec3  FragPos;
-    highp vec3 Normal;
-    highp vec2 TexCoords;
-    highp vec4 FragPosLightSpace;
+    vec3 FragPos;
+    vec3 Normal;
+    vec2 TexCoords;
+    vec4 FragPosLightSpace;
 } vs_out;
 
-uniform highp mat4 projection;
-uniform highp mat4 view;
-uniform highp mat4 model;
-uniform highp mat4 lightSpaceMatrix;
+uniform mat4 projection;
+uniform mat4 view;
+uniform mat4 model;
+uniform mat4 lightSpaceMatrix;
 uniform bool reverse_normals;
 
 void main()
