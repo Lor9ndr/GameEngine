@@ -50,8 +50,7 @@ namespace GameEngine
         private Shader LightBoxShader;
         private DeferredShading _ds;
 
-        private DirectShadows _directShadows;
-        private PointShadows _pointShadows;
+        private ShadowFrameBuffer _shadowFB;
 
         private static Texture _lightTexture = Texture.LoadFromFile("../../../Resources/Textures/blub.png", "texture_diffuse", string.Empty);
         private DirectLight _sun;
@@ -118,7 +117,7 @@ namespace GameEngine
 
             #region Lights
             _sun = new DirectLight(Cube.GetMesh()
-                , position: new Vector3(-26, 10, -161)
+                , position: new Vector3(-1, 7, 1.3f)
                 , ambient: new Vector3(0.6f)
                 , diffuse: new Vector3(1f)
                 , lightColor: new Vector3(0.6f)
@@ -136,9 +135,9 @@ namespace GameEngine
             _lights.Add(sl);
             _lights.Add(_sun);
 
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 1; i++)
             {
-                var position = new Vector3(rd.Next(-30,50), rd.Next(3, 10), rd.Next(-55, 55));
+                var position = new Vector3(rd.Next(-5,4), rd.Next(3, 10), rd.Next(-5, 4));
                 var resultX = rd.NextFloat(0, 1);
                 var resultY = rd.NextFloat(0, 1);
                 var resultZ = rd.NextFloat(0, 1);
@@ -162,10 +161,12 @@ namespace GameEngine
             CursorGrabbed = true;
             base.OnLoad();
             _camera.Enable(this);
+            _shadowFB = new ShadowFrameBuffer(_worldRenderer);
+            _shadowFB.Setup();
             /*_directShadows = new DirectShadows(_worldRenderer);
             _directShadows.Setup();*/
-            _pointShadows = new PointShadows(_worldRenderer);
-            _pointShadows.Setup();
+            /* _pointShadows = new PointShadows(_worldRenderer);
+             _pointShadows.Setup();*/
         }
 
         protected override void OnRenderFrame(FrameEventArgs args)
@@ -173,9 +174,8 @@ namespace GameEngine
             /*            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
                         GL.Enable(EnableCap.CullFace);*/
             //_worldRenderer.Render(_camera, SimpleShader);
-           _pointShadows.RenderBuffer(_camera);
             //_directShadows.RenderBuffer(_camera);
-
+            _shadowFB.RenderBuffer(_camera);
 #if DEBUG
             _worldRenderer.RenderLights(_camera, LightBoxShader, true);
 #endif
@@ -189,13 +189,15 @@ namespace GameEngine
                 $"FPS: {FPS},"+
             $" Objects: {_models.Count}," +
             $" Lights: {_lights.Count}, " +
-            $"CAMERAPOS: {_camera.Position}";
+            $"CAMERAPOS: {_camera.Position}" +
+            $"Shadows: {Shadows}";
             _worldRenderer.Update();
-           /* foreach (var item in _lights.OfType<PointLight>())
+            foreach (var item in _lights.OfType<DirectLight>())
             {
                 item.Position.X = (float)(10 * Math.Sin(Time));
                 item.Position.Z = (float)(10 * Math.Cos(Time));
-            }*/
+            }
+            _shadowFB.LightShader.SetInt("shadows", Shadows);
 
 
             _time += args.Time;
@@ -251,6 +253,7 @@ namespace GameEngine
                 }
 
             }
+            Shadows = Keyboard.IsKeyDown(Keys.B)? 0 : 1;
             if (Keyboard.IsKeyDown(Keys.Down))
             {
                 foreach (var item in _lights.OfType<PointLight>())

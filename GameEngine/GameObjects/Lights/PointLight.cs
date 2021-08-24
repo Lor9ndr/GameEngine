@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace GameEngine.GameObjects.Lights
 {
-    class PointLight : Light
+    public class PointLight : Light
     {
         private static int _id = -1;
         public int PointLightID;

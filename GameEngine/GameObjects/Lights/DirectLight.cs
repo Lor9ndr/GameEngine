@@ -24,14 +24,14 @@ namespace GameEngine.GameObjects.Lights
             SetupModel(shader);
             shader.SetVector3("dirLight.position", Position);
             shader.SetVector3("dirLight.direction", Direction);
-            shader.SetVector3($"dirLight.ambient", Ambient);
-            shader.SetVector3($"dirLight.diffuse", Diffuse);
-            shader.SetVector3($"dirLight.specular", LightColor);
-            shader.SetVector3($"dirLight.lightColor", LightColor);
+            shader.SetVector3("dirLight.ambient", Ambient);
+            shader.SetVector3("dirLight.diffuse", Diffuse);
+            shader.SetVector3("dirLight.specular", Specular);
+            shader.SetVector3("dirLight.lightColor", LightColor);
 #if DEBUG
-            shader.SetInt("reverse_normals", 1);
-            _mesh.Draw();
             shader.SetInt("reverse_normals", 0);
+            _mesh.Draw();
+            shader.SetInt("reverse_normals", 1);
 
 #endif
         }

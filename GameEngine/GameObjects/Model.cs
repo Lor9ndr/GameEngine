@@ -1,6 +1,7 @@
 ﻿using Assimp;
 using Assimp.Configs;
 using GameEngine.Enums;
+using GameEngine.Extensions;
 using GameEngine.GameObjects.Base;
 using GameEngine.Intefaces;
 using GameEngine.Structs;
@@ -46,7 +47,7 @@ namespace GameEngine.GameObjects
             var r2 = Matrix4.CreateRotationY(Rotation.Y);
             var r3 = Matrix4.CreateRotationZ(Rotation.Z);
             var s = Matrix4.CreateScale(Scale);
-            _model = r1 * r2 * r3 * s * t2;
+            _model = r1.Multiply(r2).Multiply(r3).Multiply(s).Multiply(t2);
             shader.SetMatrix4("model", _model);
             if (_reverseNormals)
             {

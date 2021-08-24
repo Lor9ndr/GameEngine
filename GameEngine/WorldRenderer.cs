@@ -32,8 +32,16 @@ namespace GameEngine
         public void Render(Camera camera, Shader shader)
         {
             SkyBox.Render(camera);
+            for (int i = 0; i < 6; i++)
+            {
+                GL.DisableVertexAttribArray(i);
+            }
             SetupCamera(camera, shader);
             RenderObjects(camera, shader);
+            for (int i = 0; i < 6; i++)
+            {
+                GL.DisableVertexAttribArray(i);
+            }
             RenderLights(camera, shader);
             for (int i = 0; i < 6; i++)
             {
