@@ -57,7 +57,7 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
 
             GL.Viewport(0, 0, ShadowFrameBuffer.ShadowSize.X, ShadowFrameBuffer.ShadowSize.Y);
             GL.Clear(ClearBufferMask.DepthBufferBit);
-            wr.Render(camera, DepthShader ,false);
+            wr.Render(camera, DepthShader ,false, false);
             FBO.Unbind();
         }
         public void ConfigureShaderAndMatrices(Shader shader, Camera camera, Light light)

@@ -21,6 +21,7 @@ namespace GameEngine.GameObjects.Lights
         public override void Render(Shader shader, bool drawMesh = false)
         {
             shader.Use();
+            SetupModel(shader);
             shader.SetVector3($"pointLights[{PointLightID}].position", Position);
             shader.SetVector3($"pointLights[{PointLightID}].ambient", Ambient);
             shader.SetVector3($"pointLights[{PointLightID}].diffuse", Diffuse);
@@ -30,7 +31,6 @@ namespace GameEngine.GameObjects.Lights
             shader.SetFloat($"pointLights[{PointLightID}].linear", 0.5f);
             shader.SetFloat($"pointLights[{PointLightID}].quadratic", 0.064f);
             shader.SetVector3("lightColor", LightColor);
-            SetupModel(shader);
             if (drawMesh)
             {
                 DrawMesh(shader);

@@ -78,7 +78,7 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
                 DepthShader.SetVector3("lightPos", lights[i].Position);
             }
             DepthShader.SetFloat("far_plane", FarPlane);
-            wr.Render(camera, DepthShader);
+            wr.Render(camera, DepthShader, false, false);
             FBO.Unbind();
 
 

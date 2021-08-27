@@ -54,7 +54,7 @@ namespace GameEngine
 
         public void RenderLights(Camera camera, Shader shader, bool drawMesh = false)
         {
-
+            SetupCamera(camera, shader);
             shader.SetInt("nr_point_lights", Lights.OfType<PointLight>().Count());
             if (Lights.OfType<SpotLight>().Count() > 0)
             {
@@ -75,12 +75,7 @@ namespace GameEngine
                 item.Render(shader);
             }
         }
-        private void SetupCamera(Camera camera, Shader shader)
-        {
-            shader.SetMatrix4("projection", camera.GetProjectionMatrix());
-            shader.SetMatrix4("view", camera.GetViewMatrix());
-            shader.SetVector3("viewPos", camera.Position);
-        }
+       
         public void Update()
         {
             foreach (var item in GameObjects)
@@ -91,6 +86,12 @@ namespace GameEngine
             {
                 item.Update();
             }
+        }
+        private void SetupCamera(Camera camera, Shader shader)
+        {
+            shader.SetMatrix4("projection", camera.GetProjectionMatrix());
+            shader.SetMatrix4("view", camera.GetViewMatrix());
+            shader.SetVector3("viewPos", camera.Position);
         }
     }
 }

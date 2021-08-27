@@ -60,7 +60,7 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
             DirectShadows?.BindTexture();
             PointShadows?.BindTexture(TextureTarget.TextureCubeMap);
             LightShader.SetFloat("far_plane", FarPlane);
-            WR.Render(camera, LightShader);
+            WR.Render(camera, LightShader, true, false);
 
 
 
