@@ -18,9 +18,8 @@ namespace GameEngine.GameObjects.Lights
             _id++;
             PointLightID = _id;
         }
-        public override void Render(Shader shader)
+        public override void Render(Shader shader, bool drawMesh = false)
         {
-
             shader.Use();
             shader.SetVector3($"pointLights[{PointLightID}].position", Position);
             shader.SetVector3($"pointLights[{PointLightID}].ambient", Ambient);
@@ -32,12 +31,11 @@ namespace GameEngine.GameObjects.Lights
             shader.SetFloat($"pointLights[{PointLightID}].quadratic", 0.064f);
             shader.SetVector3("lightColor", LightColor);
             SetupModel(shader);
+            if (drawMesh)
+            {
+                DrawMesh(shader);
+            }
         }
-        public void DrawMesh(Shader shader) 
-        {
-            shader.SetInt("reverse_normals", 1);
-            _mesh.Draw();
-            shader.SetInt("reverse_normals", 0);
-        }
+      
     }
 }

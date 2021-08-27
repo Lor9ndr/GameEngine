@@ -1,9 +1,11 @@
 ﻿using GameEngine.DefaultMeshes;
 using GameEngine.Extensions;
 using GameEngine.GameObjects;
+using GameEngine.GameObjects.Base;
 using GameEngine.GameObjects.Lights;
 using GameEngine.Intefaces;
 using GameEngine.RenderPrepearings.FrameBuffers;
+using OpenTK.ImGui;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
@@ -14,6 +16,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ImGuiNET;
 
 namespace GameEngine
 {
@@ -21,9 +24,11 @@ namespace GameEngine
     {
         #region Constructors
 
-        public Game(GameWindowSettings gameWindowSettings, NativeWindowSettings nativeWindowSettings) 
-            : base(gameWindowSettings, nativeWindowSettings)
-        { }
+        public Game(GameWindowSettings gameWindowSettings) 
+            : base(gameWindowSettings, new NativeWindowSettings() { APIVersion = new Version(4,6)})
+        {
+            CursorGrabbed = true;
+        }
         #endregion
 
         #region Public Properties
@@ -31,7 +36,8 @@ namespace GameEngine
         public static float FPS { get; private set; }
         public static float DeltaTime => _deltaTime;
         public static double Time => _time;
-
+        public static int Width = 1920;
+        public static int Height = 1080;
         public KeyboardState Keyboard { get; private set; }
         #endregion
 
@@ -55,7 +61,8 @@ namespace GameEngine
         private static Texture _lightTexture = Texture.LoadFromFile("../../../Resources/Textures/blub.png", "texture_diffuse", string.Empty);
         private DirectLight _sun;
         internal static int Shadows = 1;
-
+        private bool enabled;
+        private ImGuiController controller;
         #endregion
 
         #region Const
@@ -77,8 +84,6 @@ namespace GameEngine
         public const string DIRECT_SHADOW_SHADERS_PATH = SHADOW_SHADERS_PATH + "DirectShadows/";
         public const string POINT_SHADOW_SHADERS_PATH = SHADOW_SHADERS_PATH + "PointShadows/";
 
-        public const int WIDTH = 1920;
-        public const int HEIGHT = 1080;
         #endregion
 
         #region Overrides
@@ -89,10 +94,9 @@ namespace GameEngine
             GL.Enable(EnableCap.DepthTest);
 
             _camera = new Camera(new Vector3(0, 0, 3), Size.X / (float)Size.Y);
-            SimpleShader = new Shader(SIMPLE_SHADER + ".vs", SIMPLE_SHADER + ".fr");
+            //SimpleShader = new Shader(SIMPLE_SHADER + ".vs", SIMPLE_SHADER + ".fr");
             LightBoxShader = new Shader(DEFERRED_RENDER_PATH + "LightBoxV.glsl", DEFERRED_RENDER_PATH + "LightBoxfr.glsl");
             Random rd = new();
-
             #region Models
             _models.Add(new Model
                (MAN_PATH
@@ -101,9 +105,9 @@ namespace GameEngine
                new Vector3(rd.Next(-100, 100)),
                new Vector3(rd.Next(-10, 10)),
                new Vector3(1f), 0));
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 15; i++)
             {
-                var pos = new Vector3(rd.Next(-8, 8), rd.Next(0), rd.Next(-15,16));
+                var pos = new Vector3(rd.Next(-20, 15), rd.Next(0, 30), rd.Next(-15,16));
                 _models.Add(new Model
                 (NANOSUIT_PATH,
                 pos,
@@ -117,12 +121,12 @@ namespace GameEngine
 
             #region Lights
             _sun = new DirectLight(Cube.GetMesh()
-                , position: new Vector3(-1, 7, 1.3f)
-                , ambient: new Vector3(0.6f)
+                , position: new Vector3(-1, 100, 1.3f)
+                , ambient: new Vector3(0.1f)
                 , diffuse: new Vector3(1f)
-                , lightColor: new Vector3(0.6f)
+                , lightColor: new Vector3(1f)
                 , direction: new Vector3(0)
-                , specular: new Vector3(1.0f)
+                , specular: new Vector3(0.4f)
                 , scale: new Vector3(1));
             SpotLight sl = new SpotLight(_camera.Position
                             , ambient: new Vector3(0.0f, 0.0f, 0.0f)
@@ -135,9 +139,9 @@ namespace GameEngine
             _lights.Add(sl);
             _lights.Add(_sun);
 
-            for (int i = 0; i < 1; i++)
+            for (int i = 0; i < 5; i++)
             {
-                var position = new Vector3(rd.Next(-5,4), rd.Next(3, 10), rd.Next(-5, 4));
+                var position = new Vector3(rd.Next(-50,60), rd.Next(5, 50), rd.Next(-50, 50));
                 var resultX = rd.NextFloat(0, 1);
                 var resultY = rd.NextFloat(0, 1);
                 var resultZ = rd.NextFloat(0, 1);
@@ -146,7 +150,7 @@ namespace GameEngine
                         (
                             Cube.GetMesh()
                             , position
-                            , ambient: new Vector3(1f)
+                            , ambient: new Vector3(0.25f)
                             , diffuse: new Vector3(1f)
                             , lightColor: new Vector3(resultX, resultY, resultZ)
                             , scale: new Vector3(1)
@@ -154,31 +158,31 @@ namespace GameEngine
                         )
                     );
             }
-            var ter = new Model(TERRAIN_PATH, new Vector3(0), new Vector3(0), new Vector3(0), new Vector3(0.05f),0, reverseNormals:false);
+            var ter = new Model(BRIDGE_PATH, new Vector3(0), new Vector3(0), new Vector3(0), new Vector3(20f),0, reverseNormals:false);
             #endregion
             _models.Add(ter);
             _worldRenderer = new WorldRenderer(_models, _lights);
-            CursorGrabbed = true;
             base.OnLoad();
             _camera.Enable(this);
             _shadowFB = new ShadowFrameBuffer(_worldRenderer);
             _shadowFB.Setup();
-            /*_directShadows = new DirectShadows(_worldRenderer);
-            _directShadows.Setup();*/
-            /* _pointShadows = new PointShadows(_worldRenderer);
-             _pointShadows.Setup();*/
+            /*controller = new ImGuiController(this);*/
+            this.Size = new Vector2i(Width, Height);
         }
 
         protected override void OnRenderFrame(FrameEventArgs args)
         {
-            /*            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-                        GL.Enable(EnableCap.CullFace);*/
-            //_worldRenderer.Render(_camera, SimpleShader);
-            //_directShadows.RenderBuffer(_camera);
+
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+            GL.Enable(EnableCap.DepthTest);
             _shadowFB.RenderBuffer(_camera);
 #if DEBUG
             _worldRenderer.RenderLights(_camera, LightBoxShader, true);
 #endif
+            //onDrawGUI();
+            //controller.Render();
+
             SwapBuffers();
         }
 
@@ -199,7 +203,7 @@ namespace GameEngine
             }
             _shadowFB.LightShader.SetInt("shadows", Shadows);
 
-
+            //controller.Update(this, _deltaTime);
             _time += args.Time;
             _deltaTime = (float)_time - (float)oldTimeSinceStart;
             HandleKeyBoard();
@@ -207,6 +211,18 @@ namespace GameEngine
             oldTimeSinceStart = _time;
         }
 
+        protected override void OnResize(ResizeEventArgs e)
+        {
+            base.OnResize(e);
+
+            // Update the opengl viewport
+            GL.Viewport(0, 0, e.Size.X, e.Size.Y);
+            Game.Width = e.Size.X;
+            Game.Height = e.Size.Y;
+
+            // Tell ImGui of the new size
+            //controller.WindowResized(e.Size.X, e.Size.Y);
+        }
         #endregion
 
         #region Private Methods
@@ -277,11 +293,80 @@ namespace GameEngine
                 {
                     item.Position -= new Vector3(1,0,0);
                 }
+            }
 
+            if (Keyboard.IsKeyPressed(Keys.LeftControl))
+            {
+                CursorGrabbed = false;
+                _camera.CanMove = CursorGrabbed;
+            }
+            if (Keyboard.IsKeyReleased(Keys.LeftControl))
+            {
+                CursorGrabbed = true;
+                _camera.CanMove = CursorGrabbed;
             }
 
         }
+        void onDrawGUI()
+        {
+            if (ImGui.BeginMainMenuBar())
+            {
+                if (ImGui.BeginMenu("File"))
+                {
+                    if (ImGui.MenuItem("Open", "CTRL+O"))
+                    {
+                    }
 
+                    ImGui.Separator();
+                    if (ImGui.MenuItem("Save", "CTRL+S"))
+                    {
+                    }
+
+                    if (ImGui.MenuItem("Save As", "CTRL+Shift+S"))
+                    {
+                    }
+
+                    ImGui.EndMenu();
+                }
+
+                if (ImGui.BeginMenu("Settings"))
+                {
+                    ImGui.Checkbox("Enabled", ref enabled);
+
+                    ImGui.EndMenu();
+                }
+
+                ImGui.EndMainMenuBar();
+            }
+
+            if (ImGui.Begin("Objects"))
+            {
+                if (ImGui.TreeNode("Objects"))
+                {
+                    foreach (var obj in _worldRenderer.GameObjects)
+                    {
+                        var item = obj as AMovable;
+                        ImGui.PushID(obj.GetType().ToString() + _worldRenderer.GameObjects.IndexOf(obj));
+                        if (ImGui.TreeNode(item.GetType().ToString()))
+                        {
+                            ImGui.Text("Position");
+
+                            Vector3 tmp = item.Position;
+                            System.Numerics.Vector3 v = new System.Numerics.Vector3(tmp.X, tmp.Y, tmp.Z);
+                            ImGui.DragFloat3("Position", ref v, 0.1f);
+                            item.Position = new Vector3(v.X, v.Y, v.Z);
+                            ImGui.TreePop();
+                        }
+
+                        ImGui.PopID();
+                    }
+
+                    ImGui.TreePop();
+                }
+
+                ImGui.End();
+            }
+        }
 
         #endregion
     }

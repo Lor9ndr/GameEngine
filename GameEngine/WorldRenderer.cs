@@ -29,9 +29,12 @@ namespace GameEngine
             Lights = aLights;
             SkyBox = new SkyBox();
         }
-        public void Render(Camera camera, Shader shader)
+        public void Render(Camera camera, Shader shader,bool renderSkybox = true, bool drawlightMesh = false)
         {
-            SkyBox.Render(camera);
+            if (renderSkybox)
+            {
+                SkyBox.Render(camera);
+            }
             for (int i = 0; i < 6; i++)
             {
                 GL.DisableVertexAttribArray(i);
@@ -42,7 +45,7 @@ namespace GameEngine
             {
                 GL.DisableVertexAttribArray(i);
             }
-            RenderLights(camera, shader);
+            RenderLights(camera, shader, drawlightMesh);
             for (int i = 0; i < 6; i++)
             {
                 GL.DisableVertexAttribArray(i);
@@ -51,8 +54,8 @@ namespace GameEngine
 
         public void RenderLights(Camera camera, Shader shader, bool drawMesh = false)
         {
-            SetupCamera(camera, shader);
 
+            shader.SetInt("nr_point_lights", Lights.OfType<PointLight>().Count());
             if (Lights.OfType<SpotLight>().Count() > 0)
             {
                 Lights.OfType<SpotLight>().FirstOrDefault().Position = camera.Position;
@@ -60,14 +63,7 @@ namespace GameEngine
             }
             foreach (var item in Lights)
             {
-                item.Render(shader);
-                if (drawMesh)
-                {
-                    if (item.GetType() == typeof(PointLight))
-                    {
-                        (item as PointLight).DrawMesh(shader);
-                    }
-                }
+                item.Render(shader, drawMesh);
             }
         }
 

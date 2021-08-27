@@ -1,6 +1,7 @@
 ﻿using GameEngine.DefaultMeshes;
 using GameEngine.GameObjects;
 using GameEngine.GameObjects.Lights;
+using GameEngine.RenderPrepearings.FrameBuffers.Base;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using System;
@@ -11,13 +12,12 @@ using System.Threading.Tasks;
 
 namespace GameEngine.RenderPrepearings.FrameBuffers
 {
-    public class ShadowFrameBuffer
+    public class ShadowFrameBuffer : FrameBuffer
     {
         public DirectShadows DirectShadows;
         public PointShadows PointShadows;
 
-        private WorldRenderer _wr;
-        private int _fbo;
+        private Mesh _debug => FullScreenQuad.GetQuad();
         private TextureUnit PointTextureUnit = TextureUnit.Texture30;
         private TextureUnit DirectTextureUnit = TextureUnit.Texture31;
         public float NearPlane = 1.0f;
@@ -28,17 +28,16 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
         public Shader LightShader = new Shader(Game.SHADOW_SHADERS_PATH + "SimpleShader.vs", Game.SHADOW_SHADERS_PATH + "SimpleShader.fr");
         public Shader DebugShader = new Shader(Game.SHADOW_SHADERS_PATH + "Debug.vs", Game.SHADOW_SHADERS_PATH + "Debug.fr");
 
-        private Mesh _debug => FullScreenQuad.GetQuad();
-        public ShadowFrameBuffer(WorldRenderer wr)
+        public ShadowFrameBuffer(WorldRenderer wr) : base(wr)
         {
-            _wr = wr;
         }
-        public void Setup()
+
+        public override void Setup()
         {
-            _fbo = GL.GenFramebuffer();
-            //DirectShadows = new DirectShadows(_fbo, DepthDirectShader, DirectTextureUnit);
-            PointShadows = new PointShadows(_fbo, DepthCubeShader, PointTextureUnit);
-            //DirectShadows.Setup();
+            FBO = GL.GenFramebuffer();
+            DirectShadows = new DirectShadows(this, DepthDirectShader, DirectTextureUnit);
+            PointShadows = new PointShadows(this, DepthCubeShader, PointTextureUnit);
+            DirectShadows.Setup();
             PointShadows.Setup();
             LightShader.Use();
             LightShader.SetInt("shadowMap", 31);
@@ -48,32 +47,21 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
         public void RenderBuffer(Camera camera)
         {
             // Write To buffer
-
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fbo);
-            GL.Disable(EnableCap.CullFace);
-            DirectShadows?.RenderBuffer(camera,_wr);
-            PointShadows?.RenderBuffer(camera, _wr.Lights.OfType<PointLight>().ToList(), _wr);
-            GL.Enable(EnableCap.CullFace);
+            Bind();
+            DirectShadows?.Render(camera, WR);
+            PointShadows?.Render(camera, WR);
+            Unbind();
 
             // Read Buffer and render scene as normal
-            GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-            GL.Viewport(0, 0, Game.WIDTH, Game.HEIGHT);
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            foreach (var item in _wr.Lights.OfType<DirectLight>())
-            {
-                DirectShadows?.ConfigureShaderAndMatrices(LightShader, camera, item);
-            }
-            DirectShadows?.BindTexture();
-            PointShadows?.BindTexture();
-            LightShader.SetFloat("far_plane", FarPlane);
-            _wr.Render(camera, LightShader);
 
-/*            DebugShader.Use();
-            DebugShader.SetFloat("near_plane", DirectShadows.NearPlane);
-            DebugShader.SetFloat("far_plane", DirectShadows.FarPlane);
-            DebugShader.SetInt("shadowMap", 31);
-            DirectShadows.BindTexture();
-            _debug.Draw(PrimitiveType.TriangleStrip);*/
+            GL.Viewport(0, 0, Game.Width, Game.Height);
+            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            DirectShadows?.ConfigureShaderAndMatrices(LightShader, camera, WR.Lights.First(s => s.GetType() == typeof(DirectLight)));
+            DirectShadows?.BindTexture();
+            PointShadows?.BindTexture(TextureTarget.TextureCubeMap);
+            LightShader.SetFloat("far_plane", FarPlane);
+            WR.Render(camera, LightShader);
+
 
 
         }

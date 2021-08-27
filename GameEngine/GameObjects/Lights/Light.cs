@@ -39,12 +39,22 @@ namespace GameEngine.GameObjects.Lights
             _model = r1.Multiply(r2).Multiply(r3).Multiply(s).Multiply(t2);
             shader.SetMatrix4("model", _model);
         }
-        public virtual void Render(Shader shader)
+        public virtual void Render(Shader shader, bool drawMesh = false)
         {
             shader.Use();
             SetupModel(shader);
-            _mesh.Draw();
+            if (drawMesh)
+            {
+                DrawMesh(shader);
+            }
         }
+        public virtual void DrawMesh(Shader shader)
+        {
+            shader.SetInt("reverse_normals", 1);
+            _mesh.Draw();
+            shader.SetInt("reverse_normals", 0);
+        }
+
         public void SetAmbient(Vector3 ambient)
         {
             Ambient += ambient;

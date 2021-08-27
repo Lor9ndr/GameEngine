@@ -72,15 +72,15 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
             for (int i = 0; i < _textures.Length; i++)
             {
                 GL.BindTexture(TextureTarget.Texture2D, _textures[i]);
-                GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb32f, Game.WIDTH, Game.HEIGHT, 0, PixelFormat.Rgb, PixelType.Float, (IntPtr)null);
+                GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgb32f, Game.Width, Game.Height, 0, PixelFormat.Rgb, PixelType.Float, (IntPtr)null);
                 GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment0 + i, TextureTarget.Texture2D, _textures[i], 0);
             }
             GL.BindTexture(TextureTarget.Texture2D, _rboDepth);
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Depth32fStencil8, Game.WIDTH, Game.HEIGHT, 0, PixelFormat.DepthComponent, PixelType.Float, (IntPtr)null);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Depth32fStencil8, Game.Width, Game.Height, 0, PixelFormat.DepthComponent, PixelType.Float, (IntPtr)null);
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.DepthStencilAttachment, TextureTarget.Texture2D, _rboDepth, 0);
 
             GL.BindTexture(TextureTarget.Texture2D, _finalTexture);
-            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, Game.WIDTH, Game.HEIGHT, 0, PixelFormat.Rgb, PixelType.Float, (IntPtr)null);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, PixelInternalFormat.Rgba, Game.Width, Game.Height, 0, PixelFormat.Rgb, PixelType.Float, (IntPtr)null);
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, FramebufferAttachment.ColorAttachment4, TextureTarget.Texture2D, _finalTexture, 0);
 
             if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) != FramebufferErrorCode.FramebufferComplete)
@@ -197,7 +197,7 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
                 float radius = (-linear + MathF.Sqrt(linear * linear - 4 * quadratic * (constant - (256.0f / 5.0f) * maxBrightness))) / (2.0f * quadratic);
                 shaderLightingPass.SetFloat($"lights[{i}].radius", radius);
             }
-            shaderLightingPass.SetVector2("gScreenSize", new Vector2(Game.WIDTH, Game.HEIGHT));
+            shaderLightingPass.SetVector2("gScreenSize", new Vector2(Game.Width, Game.Height));
             shaderLightingPass.SetVector3("viewPos", camera.Position);
             shaderLightingPass.SetInt("gPositionMap", _textures[0]);
             shaderLightingPass.SetInt("gColorMap", _textures[1]);
@@ -206,17 +206,17 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
             GL.Disable(EnableCap.Blend);
             GL.BindFramebuffer(FramebufferTarget.DrawFramebuffer, 0);
             GL.BindFramebuffer(FramebufferTarget.ReadFramebuffer, _gBuffer);
-            int halfWidth = Game.WIDTH / 2;
-            int halfHeight = Game.HEIGHT / 2;
+            int halfWidth = Game.Width / 2;
+            int halfHeight = Game.Height / 2;
             GL.ReadBuffer(ReadBufferMode.ColorAttachment0);
-            GL.BlitFramebuffer(0, 0, Game.WIDTH, Game.HEIGHT, 0, 0, halfWidth, halfHeight, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
+            GL.BlitFramebuffer(0, 0, Game.Width, Game.Height, 0, 0, halfWidth, halfHeight, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
 
             GL.ReadBuffer(ReadBufferMode.ColorAttachment1);
-            GL.BlitFramebuffer(0, 0, Game.WIDTH, Game.HEIGHT, 0, halfHeight, halfWidth, Game.HEIGHT, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
+            GL.BlitFramebuffer(0, 0, Game.Width, Game.Height, 0, halfHeight, halfWidth, Game.Height, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
             GL.ReadBuffer(ReadBufferMode.ColorAttachment2);
-            GL.BlitFramebuffer(0, 0, Game.WIDTH, Game.HEIGHT, halfWidth, halfHeight, Game.WIDTH, Game.HEIGHT, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
+            GL.BlitFramebuffer(0, 0, Game.Width, Game.Height, halfWidth, halfHeight, Game.Width, Game.Height, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
             GL.ReadBuffer(ReadBufferMode.ColorAttachment3);
-            GL.BlitFramebuffer(0, 0, Game.WIDTH, Game.HEIGHT, halfWidth, 0, Game.WIDTH, halfHeight, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
+            GL.BlitFramebuffer(0, 0, Game.Width, Game.Height, halfWidth, 0, Game.Width, halfHeight, ClearBufferMask.ColorBufferBit, BlitFramebufferFilter.Linear);
 
 
         }

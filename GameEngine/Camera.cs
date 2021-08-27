@@ -14,6 +14,8 @@ namespace GameEngine
         public float Sensitivity { get => _sensitivity; }
         private float _cameraSpeed = 10.0f;
 
+        public bool CanMove = true;
+
         private readonly float _sensitivity = 0.2f;
         private KeyboardState _keyboard;
         private Vector3 _front = -Vector3.UnitZ;
@@ -110,13 +112,12 @@ namespace GameEngine
         }
         private void Window_MouseMove(MouseMoveEventArgs mouse)
         {
-            Yaw += mouse.DeltaX * _sensitivity;
-            Pitch -= mouse.DeltaY * _sensitivity;
+            if (CanMove)
+            {
+                Yaw += mouse.DeltaX * _sensitivity;
+                Pitch -= mouse.DeltaY * _sensitivity;
+            }
         }
-
-
-
-
 
         // We convert from degrees to radians as soon as the property is set to improve performance
         public float Pitch

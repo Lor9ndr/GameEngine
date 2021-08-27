@@ -9,13 +9,7 @@ namespace GameEngine
         [STAThread]
         static void Main(string[] args)
         {
-            var nativeWindowSettings = new NativeWindowSettings()
-            {
-                Size = new Vector2i(1920, 1080),
-                Title = "OpenTK",
-            };
-
-            var window = new Game(GameWindowSettings.Default, nativeWindowSettings);
+            var window = new Game(GameWindowSettings.Default);
             window.Run();
         }
     }

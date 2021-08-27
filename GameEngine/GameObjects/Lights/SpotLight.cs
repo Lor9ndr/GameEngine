@@ -22,7 +22,7 @@ namespace GameEngine.GameObjects.Lights
             CutOff = cutOff;
             OuterCutOff = outerCutOff;
         }
-        public override void Render(Shader shader)
+        public override void Render(Shader shader, bool drawMesh = false)
         {
             SetupModel(shader);
             shader.SetVector3("spotLight.position", Position);
@@ -36,6 +36,7 @@ namespace GameEngine.GameObjects.Lights
             shader.SetFloat("spotLight.quadratic", 0.032f);
             shader.SetFloat("spotLight.cutOff", CutOff);
             shader.SetFloat("spotLight.outerCutOff", CutOff);
+           
         }
     }
 }
