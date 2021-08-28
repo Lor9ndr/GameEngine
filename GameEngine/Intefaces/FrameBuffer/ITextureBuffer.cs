@@ -1,4 +1,5 @@
-﻿using System;
+﻿using GameEngine.GameObjects.Lights;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -10,6 +11,6 @@ namespace GameEngine.Intefaces.FrameBuffer
     {
         public int Texture { get; }
         public void Setup();
-        public void Render(Camera camera, WorldRenderer wr);
+        public void Render(Camera camera, WorldRenderer wr, Light light);
     }
 }

@@ -21,8 +21,8 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
                 ShadowFrameBuffer.ShadowSize.X / ShadowFrameBuffer.ShadowSize.Y,
                 NearPlane, 
                 FarPlane);
-        public static float NearPlane = 1.0f;
-        public static float FarPlane = 100.0f;
+        public const float NearPlane = 1.0f;
+        public const float FarPlane = 100.0f;
         #region Constructors
         public PointShadows(FrameBuffer fbo, Shader depth, TextureUnit shadowTextureUnit) 
             : base(depth,fbo, shadowTextureUnit)
@@ -59,38 +59,30 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
             GL.ReadBuffer(ReadBufferMode.None);
             FBO.Unbind();
         }
-        public override void Render(Camera camera, WorldRenderer wr)
+        public override void Render(Camera camera, WorldRenderer wr, Light light)
         {
-
             FBO.Bind();
             GL.Viewport(0, 0, ShadowFrameBuffer.ShadowSize.X, ShadowFrameBuffer.ShadowSize.Y);
             GL.Clear(ClearBufferMask.DepthBufferBit);
-
             DepthShader.Use();
-            var lights = wr.Lights.OfType<PointLight>().ToList();
-            for (int i = 0; i < lights.Count; i++)
+            var shadowTransofrms = GetShadowTransform(light);
+            for (int j = 0; j < shadowTransofrms.Count; j++)
             {
-                var shadowTransofrms = GetShadowTransform(lights[i]);
-                for (int j = 0; j < shadowTransofrms.Count; j++)
-                {
-                    DepthShader.SetMatrix4($"shadowMatrices[{j}]", shadowTransofrms[j]);
-                }
-                DepthShader.SetVector3("lightPos", lights[i].Position);
+                DepthShader.SetMatrix4($"shadowMatrices[{j}]", shadowTransofrms[j]);
             }
+            DepthShader.SetVector3("lightPos", light.Transform.Position);
             DepthShader.SetFloat("far_plane", FarPlane);
             wr.Render(camera, DepthShader, false, false);
             FBO.Unbind();
-
-
         }
-        public static List<Matrix4> GetShadowTransform(PointLight Light) => new List<Matrix4>()
+        public static List<Matrix4> GetShadowTransform(Light Light) => new List<Matrix4>()
             {
-                Matrix4.LookAt(Light.Position, Light.Position + new Vector3(1.0f, 0.0f, 0.0f),  new Vector3(0.0f, -1.0f, 0.0f)).Multiply(ShadowProjection),
-                Matrix4.LookAt(Light.Position, Light.Position + new Vector3(-1.0f, 0.0f, 0.0f), new Vector3(0.0f, -1.0f, 0.0f)).Multiply(ShadowProjection),
-                Matrix4.LookAt(Light.Position, Light.Position + new Vector3(0.0f, 1.0f, 0.0f),  new Vector3(0.0f, 0.0f, 1.0f)).Multiply(ShadowProjection),
-                Matrix4.LookAt(Light.Position, Light.Position + new Vector3(0.0f, -1.0f, 0.0f), new Vector3(0.0f, 0.0f, -1.0f)).Multiply(ShadowProjection),
-                Matrix4.LookAt(Light.Position, Light.Position + new Vector3(0.0f, 0.0f, 1.0f),  new Vector3(0.0f, -1.0f, 0.0f)).Multiply(ShadowProjection),
-                Matrix4.LookAt(Light.Position, Light.Position + new Vector3(0.0f, 0.0f, -1.0f), new Vector3(0.0f, -1.0f, 0.0f)).Multiply(ShadowProjection)
+                Matrix4.LookAt(Light.Transform.Position, Light.Transform.Position + new Vector3(1.0f, 0.0f, 0.0f),  new Vector3(0.0f, -1.0f, 0.0f)).Multiply(ShadowProjection),
+                Matrix4.LookAt(Light.Transform.Position, Light.Transform.Position + new Vector3(-1.0f, 0.0f, 0.0f), new Vector3(0.0f, -1.0f, 0.0f)).Multiply(ShadowProjection),
+                Matrix4.LookAt(Light.Transform.Position, Light.Transform.Position + new Vector3(0.0f, 1.0f, 0.0f),  new Vector3(0.0f, 0.0f, 1.0f)).Multiply(ShadowProjection),
+                Matrix4.LookAt(Light.Transform.Position, Light.Transform.Position + new Vector3(0.0f, -1.0f, 0.0f), new Vector3(0.0f, 0.0f, -1.0f)).Multiply(ShadowProjection),
+                Matrix4.LookAt(Light.Transform.Position, Light.Transform.Position + new Vector3(0.0f, 0.0f, 1.0f),  new Vector3(0.0f, -1.0f, 0.0f)).Multiply(ShadowProjection),
+                Matrix4.LookAt(Light.Transform.Position, Light.Transform.Position + new Vector3(0.0f, 0.0f, -1.0f), new Vector3(0.0f, -1.0f, 0.0f)).Multiply(ShadowProjection)
             };
     }
 }

@@ -4,11 +4,7 @@ using GameEngine.GameObjects.Lights;
 using GameEngine.RenderPrepearings.FrameBuffers.Base;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace GameEngine.RenderPrepearings.FrameBuffers
 {
@@ -20,9 +16,7 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
         private Mesh _debug => FullScreenQuad.GetQuad();
         private TextureUnit PointTextureUnit = TextureUnit.Texture30;
         private TextureUnit DirectTextureUnit = TextureUnit.Texture31;
-        public float NearPlane = 1.0f;
-        public float FarPlane = 100.0f;
-        public static Vector2i ShadowSize = new Vector2i(1024, 1024);
+        public static Vector2i ShadowSize = new Vector2i(512, 512);
         public Shader DepthCubeShader = new Shader(Game.SHADOW_SHADERS_PATH + "DepthCubeMap.vs", Game.SHADOW_SHADERS_PATH + "DepthCubeMap.fr", Game.SHADOW_SHADERS_PATH + "DepthCubeMap.gs");
         public Shader DepthDirectShader = new Shader(Game.SHADOW_SHADERS_PATH + "Depth.vs", Game.SHADOW_SHADERS_PATH + "Depth.fr");
         public Shader LightShader = new Shader(Game.SHADOW_SHADERS_PATH + "SimpleShader.vs", Game.SHADOW_SHADERS_PATH + "SimpleShader.fr");
@@ -40,28 +34,33 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
             DirectShadows.Setup();
             PointShadows.Setup();
             LightShader.Use();
-            LightShader.SetInt("shadowMap", 31);
             LightShader.SetInt("shadowCubeMap", 30);
+            LightShader.SetInt("shadowMap", 31);
             DebugShader.SetInt("shadowMap", 31);
         }
         public void RenderBuffer(Camera camera)
         {
             // Write To buffer
             Bind();
-            DirectShadows?.Render(camera, WR);
-            PointShadows?.Render(camera, WR);
+            DirectShadows?.Render(camera, WR, WR.Lights.OfType<DirectLight>().First());
+            foreach (var item in WR.Lights.OfType<PointLight>())
+            {
+                PointShadows?.Render(camera, WR, item);
+            }
             Unbind();
 
-            // Read Buffer and render scene as normal
 
+            // Read Buffer and render scene as normal
+            GL.Enable(EnableCap.CullFace);
+            GL.CullFace(CullFaceMode.Back);
+            GL.FrontFace(FrontFaceDirection.Ccw);
             GL.Viewport(0, 0, Game.Width, Game.Height);
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             DirectShadows?.ConfigureShaderAndMatrices(LightShader, camera, WR.Lights.First(s => s.GetType() == typeof(DirectLight)));
             DirectShadows?.BindTexture();
             PointShadows?.BindTexture(TextureTarget.TextureCubeMap);
-            LightShader.SetFloat("far_plane", FarPlane);
+            LightShader.SetFloat("far_plane", PointShadows.FarPlane);
             WR.Render(camera, LightShader, true, false);
-
 
 
         }

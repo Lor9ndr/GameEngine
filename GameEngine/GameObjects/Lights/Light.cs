@@ -1,5 +1,8 @@
-﻿using GameEngine.Extensions;
+﻿using GameEngine.Attribute;
+using GameEngine.Bases;
+using GameEngine.Extensions;
 using GameEngine.GameObjects.Base;
+using GameEngine.RenderPrepearings;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using System;
@@ -10,34 +13,38 @@ using System.Threading.Tasks;
 
 namespace GameEngine.GameObjects.Lights
 {
-    public class Light : AMovable
+    public abstract class Light : AMovable
     {
-        public Vector3 LightColor;
-        public Vector3 Ambient;
-        public Vector3 Diffuse;
-        public Vector3 Specular;
-
+        private LightData _lightData;
+        private ShadowData _shadowData;
         protected Mesh _mesh;
-        public Light(Mesh mesh, Vector3 position, Vector3 ambient, Vector3 diffuse, Vector3 specular,Vector3 lightColor,
-             Vector3 direction = default, Vector3 rotation = default, Vector3 scale = default, float velocity = default, Matrix4 model = default) 
-            : base(position, direction, rotation, scale, velocity, model)
+        public static float NearPlane => 0.1f;
+
+        public static float FarPlane => 100.0f;
+       
+
+        public LightData LightData { get => _lightData; set => _lightData = value; }
+        public ShadowData ShadowData { get => _shadowData; set => _shadowData = value; }
+
+        public Light(Mesh mesh, LightData lightData, ShadowData shadowData , Transform transform)
+            : base(transform)
         {
             _mesh = mesh;
-            LightColor = lightColor;
-            Ambient = ambient;
-            Diffuse = diffuse;
-            Specular = specular;
+            LightData = lightData;
+            ShadowData = shadowData;
+            AddComponent(LightData);
+            AddComponent(ShadowData);
 
         }
         public virtual void SetupModel(Shader shader)
         {
-            var t2 = Matrix4.CreateTranslation(Position);
-            var r1 = Matrix4.CreateRotationX(Rotation.X);
-            var r2 = Matrix4.CreateRotationY(Rotation.Y);
-            var r3 = Matrix4.CreateRotationZ(Rotation.Z);
-            var s = Matrix4.CreateScale(Scale);
-            _model = r1.Multiply(r2).Multiply(r3).Multiply(s).Multiply(t2);
-            shader.SetMatrix4("model", _model);
+            var t2 = Matrix4.CreateTranslation(Transform.Position);
+            var r1 = Matrix4.CreateRotationX(Transform.Rotation.X);
+            var r2 = Matrix4.CreateRotationY(Transform.Rotation.Y);
+            var r3 = Matrix4.CreateRotationZ(Transform.Rotation.Z);
+            var s = Matrix4.CreateScale(Transform.Scale);
+            Transform.Model = r1.Multiply(r2).Multiply(r3).Multiply(s).Multiply(t2);
+            shader.SetMatrix4("model", Transform.Model);
         }
         public virtual void Render(Shader shader, bool drawMesh = false)
         {
@@ -57,7 +64,7 @@ namespace GameEngine.GameObjects.Lights
 
         public void SetAmbient(Vector3 ambient)
         {
-            Ambient += ambient;
+            LightData.Ambient += ambient;
         }
     }
 }

@@ -188,12 +188,12 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
                 const float constant = 1.0f; // note that we don't send this to the shader, we assume it is always 1.0 (in our case)
                 const float linear = 0.7f;
                 const float quadratic = 1.8f;
-                shaderLightingPass.SetVector3($"lights[{i}].position", light.Position);
-                shaderLightingPass.SetVector3($"lights[{i}].color", light.LightColor);
+                shaderLightingPass.SetVector3($"lights[{i}].position", light.Transform.Position);
+                shaderLightingPass.SetVector3($"lights[{i}].color", light.LightData.Color);
 
                 shaderLightingPass.SetFloat($"lights[{i}].linear", linear);
                 shaderLightingPass.SetFloat($"lights[{i}].quadratic", quadratic);
-                float maxBrightness = MathF.Max(MathF.Max(light.LightColor.X, light.LightColor.Y), light.LightColor.Z);
+                float maxBrightness = MathF.Max(MathF.Max(light.LightData.Color.X, light.LightData.Color.Y), light.LightData.Color.Z);
                 float radius = (-linear + MathF.Sqrt(linear * linear - 4 * quadratic * (constant - (256.0f / 5.0f) * maxBrightness))) / (2.0f * quadratic);
                 shaderLightingPass.SetFloat($"lights[{i}].radius", radius);
             }

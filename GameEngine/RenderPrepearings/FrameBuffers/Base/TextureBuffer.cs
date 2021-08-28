@@ -1,4 +1,5 @@
-﻿using GameEngine.Intefaces.FrameBuffer;
+﻿using GameEngine.GameObjects.Lights;
+using GameEngine.Intefaces.FrameBuffer;
 using OpenTK.Graphics.OpenGL4;
 using System;
 using System.Collections.Generic;
@@ -26,7 +27,7 @@ namespace GameEngine.RenderPrepearings.FrameBuffers.Base
             throw new NotImplementedException();
         }
 
-        public virtual void Render(Camera camera, WorldRenderer wr)
+        public virtual void Render(Camera camera, WorldRenderer wr, Light light)
         {
             throw new NotImplementedException();
         }

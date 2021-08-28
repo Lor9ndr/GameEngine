@@ -1,4 +1,6 @@
-﻿using OpenTK.Mathematics;
+﻿using GameEngine.Bases;
+using GameEngine.RenderPrepearings;
+using OpenTK.Mathematics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,24 +11,22 @@ namespace GameEngine.GameObjects.Lights
 {
     public class DirectLight : Light
     {
-        public DirectLight(Mesh mesh, Vector3 position, Vector3 ambient, Vector3 diffuse,Vector3 specular, Vector3 lightColor, 
-            Vector3 direction = default, Vector3 rotation = default, Vector3 scale = default, float velocity = 0, Matrix4 model = default)
-            : base(mesh, position, ambient, diffuse, lightColor, specular, direction, rotation, scale, velocity, model)
+
+        public DirectLight(Mesh mesh, LightData lightData, ShadowData shadowData, Transform transform) : base(mesh, lightData,shadowData, transform)
         {
-            if (direction == default)
-            {
-                Direction = new Vector3(0);
-            }
         }
+        public static new float NearPlane => 0.1f;
+
+        public static new float FarPlane => 1000.0f;
 
         public override void Render(Shader shader, bool drawMesh)
         {
-            shader.SetVector3("dirLight.position", Position);
-            shader.SetVector3("dirLight.direction", Direction);
-            shader.SetVector3("dirLight.ambient", Ambient);
-            shader.SetVector3("dirLight.diffuse", Diffuse);
-            shader.SetVector3("dirLight.specular", Specular);
-            shader.SetVector3("dirLight.lightColor", LightColor);
+            shader.SetVector3("dirLight.position", Transform.Position);
+            shader.SetVector3("dirLight.direction", Transform.Direction);
+            shader.SetVector3("dirLight.ambient", LightData.Ambient);
+            shader.SetVector3("dirLight.diffuse", LightData.Diffuse);
+            shader.SetVector3("dirLight.specular", LightData.Specular);
+            shader.SetVector3("dirLight.lightColor", LightData.Color);
             SetupModel(shader);
             if (drawMesh)
             {

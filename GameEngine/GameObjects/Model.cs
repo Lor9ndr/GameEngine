@@ -1,40 +1,35 @@
 ﻿using Assimp;
 using Assimp.Configs;
-using GameEngine.Enums;
+using GameEngine.Bases;
 using GameEngine.Extensions;
 using GameEngine.GameObjects.Base;
 using GameEngine.Intefaces;
 using GameEngine.Structs;
-using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace GameEngine.GameObjects
 {
     public class Model : AMovable, IRenderable
     {
         private static readonly Dictionary<string, Model> _models = new();
-        private static readonly Dictionary<string, Mesh> _overAllMeshes = new();
         private List<Mesh> _meshes = new();
         private static readonly List<Texture> _loadedTextures = new();
         private readonly string directory;
         private readonly string _path;
         private bool _reverseNormals = false;
-        private bool _enableCullFace;
 
-        public Model(string path, Vector3 position, Vector3 direction, Vector3 rotation, Vector3 scale, float velocity,bool reverseNormals = false,bool enableCullFace=true, Matrix4 model = default)
-            : base(position, direction, rotation, scale, velocity, model)
+
+
+
+        public Model(string path, Transform transform, bool reverseNormals = false)
+            :base(transform)
         {
             directory = path.Substring(0, path.LastIndexOf('/'));
-            Position = position;
             _path = path;
             _reverseNormals = reverseNormals;
-            _enableCullFace = enableCullFace;
             LoadModel();
         }
 
@@ -42,13 +37,13 @@ namespace GameEngine.GameObjects
         {
 
             shader.Use();
-            var t2 = Matrix4.CreateTranslation(Position);
-            var r1 = Matrix4.CreateRotationX(Rotation.X);
-            var r2 = Matrix4.CreateRotationY(Rotation.Y);
-            var r3 = Matrix4.CreateRotationZ(Rotation.Z);
-            var s = Matrix4.CreateScale(Scale);
-            _model = r1.Multiply(r2).Multiply(r3).Multiply(s).Multiply(t2);
-            shader.SetMatrix4("model", _model);
+            var t2 = Matrix4.CreateTranslation(Transform.Position);
+            var r1 = Matrix4.CreateRotationX(Transform.Rotation.X);
+            var r2 = Matrix4.CreateRotationY(Transform.Rotation.Y);
+            var r3 = Matrix4.CreateRotationZ(Transform.Rotation.Z);
+            var s = Matrix4.CreateScale(Transform.Scale);
+            Transform.Model = r1.Multiply(r2).Multiply(r3).Multiply(s).Multiply(t2);
+            shader.SetMatrix4("model", Transform.Model);
             if (_reverseNormals)
             {
                 shader.SetInt("reverse_normals", 1);
@@ -67,7 +62,7 @@ namespace GameEngine.GameObjects
             {
                 foreach (var item in m._meshes)
                 {
-                    _meshes.Add(new Mesh(item.Vertices, item.Indices, item.Textures, item.ObjectSetupper.VAO));
+                    _meshes.Add(new Mesh(item.Vertices, item.Indices, item.Textures, item.ObjectSetupper.GetVAOClass()));
                 }
             }
             else

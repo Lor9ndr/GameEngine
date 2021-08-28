@@ -48,13 +48,9 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
             }           
         }
 
-        public override void Render(Camera camera, WorldRenderer wr)
+        public override void Render(Camera camera, WorldRenderer wr, Light light)
         {
-            foreach (var item in wr.Lights.OfType<DirectLight>())
-            {
-                ConfigureShaderAndMatrices(DepthShader, camera, item);
-            }
-
+            ConfigureShaderAndMatrices(DepthShader, camera, light);
             GL.Viewport(0, 0, ShadowFrameBuffer.ShadowSize.X, ShadowFrameBuffer.ShadowSize.Y);
             GL.Clear(ClearBufferMask.DepthBufferBit);
             wr.Render(camera, DepthShader ,false, false);
@@ -63,7 +59,7 @@ namespace GameEngine.RenderPrepearings.FrameBuffers
         public void ConfigureShaderAndMatrices(Shader shader, Camera camera, Light light)
         {
             Matrix4 lightProjection = Matrix4.CreateOrthographicOffCenter(-FarPlane, FarPlane, -FarPlane, FarPlane, 0.1f, FarPlane);
-            Matrix4 lightView = Matrix4.LookAt(light.Position, light.Direction, Vector3.UnitY);
+            Matrix4 lightView = Matrix4.LookAt(light.Transform.Position, light.Transform.Direction, Vector3.UnitY);
             Matrix4 lightSpaceMatrix = lightView.Multiply(lightProjection);
             shader.Use();
             shader.SetMatrix4("lightSpaceMatrix", lightSpaceMatrix);

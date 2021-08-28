@@ -7,41 +7,44 @@ using System.Runtime.InteropServices;
 
 namespace GameEngine
 {
-
     public class ObjectSetupper
     {
         private SetupLevel _level;
         private Vertex[] _vertices;
         private int[] _indices;
-        public VAO VAO = new VAO();
-        public VBO VBO = new VBO();
-        public EBO EBO = new EBO();
+        private VAO _vao;
+        private readonly VBO _vbo;
+        private EBO _ebo;
 
         public ObjectSetupper(Vertex[] vertices, int[] indices = null)
         {
             _vertices = vertices;
             _indices = indices;
+            _vbo = new VBO();
+
         }
         public void SetAndBindVAO(SetupLevel levels, VAO vao= default)
         {
             _level = levels;
             if (vao != default)
             {
-                VAO = vao;
+                _vao = vao;
             }
             else
             {
-                VAO.Setup(_vertices);
+                _vao = new VAO();
+                _vao.Setup(_vertices);
             }
-            VBO.Setup(_vertices);
+            _vbo.Setup(_vertices);
 
             if (_indices != null)
             {
-                EBO.Setup(_indices);
+                _ebo = new EBO();
+                _ebo.Setup(_indices);
             }
             SetupALevel();
 
-            GL.VertexArrayVertexBuffer(VAO.Vao, 0, VBO.Vbo, (IntPtr)null, Vertex.Size);
+            GL.VertexArrayVertexBuffer(GetVAO(), 0, GetVBO(), (IntPtr)null, Vertex.Size);
             GL.BindVertexArray(0);
         }
         private void SetupALevel()
@@ -77,5 +80,9 @@ namespace GameEngine
                 }
             }
         }
+        public int GetVAO() => _vao.Vao;
+        public VAO GetVAOClass() => _vao;
+        public int GetVBO() => _vbo.Vbo;
+        public int GetEBO() => _ebo.Ebo;
     }
 }

@@ -137,7 +137,7 @@ namespace GameEngine.GameObjects
             _skyBoxShader.Use();
             var viewproj = camera.GetViewMatrix() * camera.GetProjectionMatrix();
             _skyBoxShader.SetMatrix4("viewproj", viewproj);
-            GL.BindVertexArray(skyBoxMesh.ObjectSetupper.VAO.Vao);
+            GL.BindVertexArray(skyBoxMesh.ObjectSetupper.GetVAO());
             GL.ActiveTexture(TextureUnit.Texture0);
             GL.BindTexture(TextureTarget.TextureCubeMap, _cubemapTexture);
             GL.DrawArrays(PrimitiveType.Triangles, 0, skyBoxMesh.VerticesCount);

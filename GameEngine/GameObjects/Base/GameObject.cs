@@ -28,7 +28,7 @@ namespace GameEngine.GameObjects.Base
         public virtual void Draw() => Draw(PrimitiveType.Triangles);
         public virtual void Draw(PrimitiveType type)
         {
-            GL.BindVertexArray(ObjectSetupper.VAO.Vao);
+            GL.BindVertexArray(ObjectSetupper.GetVAO());
             GL.DrawArrays(type, 0, VerticesCount);
             GL.BindVertexArray(0);
         }

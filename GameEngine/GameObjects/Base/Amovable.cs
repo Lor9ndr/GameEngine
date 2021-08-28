@@ -1,41 +1,37 @@
-﻿using OpenTK.Mathematics;
+﻿using GameEngine.Attribute;
+using GameEngine.Bases;
+using OpenTK.Mathematics;
 
 namespace GameEngine.GameObjects.Base
 {
-    public abstract class AMovable
+    public abstract class AMovable:BaseObject
     {
-        public Vector3 Position;
-        public Vector3 Direction;
-        public Vector3 Rotation;
-        public Vector3 Scale;
-        public float Velocity;
-        public Matrix4 _model = Matrix4.Identity;
-        public AMovable(Vector3 position, Vector3 direction, Vector3 rotation, Vector3 scale, float velocity, Matrix4 model)
+        protected Transform _transform;
+        public AMovable(Transform transform )
         {
-            Position = position;
-            Direction = direction;
-            Rotation = rotation;
-            Scale = scale;
-            Velocity = velocity;
-            _model = model;
+            Transform = transform;
+            AddComponent(Transform);
         }
+
+        public Transform Transform { get => _transform; set => _transform = value; }
+
         public virtual void CreateRotation(Vector3 rotation)
         {
-            Rotation += rotation;
+            Transform.Rotation += rotation;
         }
 
         public virtual void CreateScale(Vector3 scale)
         {
-            Scale += scale;
+            Transform.Scale += scale;
         }
 
         public virtual void CreateTranslation(Vector3 transform)
         {
-            Position += transform;
+            Transform.Position += transform;
         }
         public virtual void Update()
         {
-            Position += Direction * (Velocity * (float)Game.DeltaTime);
+            Transform.Position += Transform.Direction * (Transform.Velocity * (float)Game.DeltaTime);
         }
     }
 }

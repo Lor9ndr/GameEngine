@@ -58,8 +58,8 @@ namespace GameEngine
             shader.SetInt("nr_point_lights", Lights.OfType<PointLight>().Count());
             if (Lights.OfType<SpotLight>().Count() > 0)
             {
-                Lights.OfType<SpotLight>().FirstOrDefault().Position = camera.Position;
-                Lights.OfType<SpotLight>().FirstOrDefault().Direction = camera.Front;
+                Lights.OfType<SpotLight>().FirstOrDefault().Transform.Position = camera.Position;
+                Lights.OfType<SpotLight>().FirstOrDefault().Transform.Direction = camera.Front;
             }
             foreach (var item in Lights)
             {
