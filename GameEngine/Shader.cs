@@ -3,6 +3,7 @@ using OpenTK.Mathematics;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 
 namespace GameEngine.GameObjects
 {
@@ -14,6 +15,7 @@ namespace GameEngine.GameObjects
         private Dictionary<string, int> _samplers = new Dictionary<string, int>();
         private Dictionary<string, int> _arraySamplers = new Dictionary<string, int>();
         private Dictionary<string, int> _uniformCache = new Dictionary<string, int>();
+        private Dictionary<string, bool> WhatSeted = new Dictionary<string, bool>();
         private string _path;
 
         // This is how you create a simple shader.
@@ -374,6 +376,18 @@ namespace GameEngine.GameObjects
                 _uniformCache.Add(name, pos);
 
                 return pos;
+            }
+        }
+        public void PrintWhatSet<T>(string name, T data)
+        {
+            var whatNotSeted = WhatSeted.Keys.Except(UniformLocations.Keys).Except(_uniformCache.Keys);
+            if (!WhatSeted.ContainsKey(name))
+            {
+                WhatSeted.Add(name, true);
+            }
+            foreach (var item in whatNotSeted)
+            {
+                Console.WriteLine(item);
             }
         }
     }

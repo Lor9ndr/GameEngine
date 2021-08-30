@@ -1,6 +1,7 @@
 ﻿using Assimp;
 using Assimp.Configs;
 using GameEngine.Bases;
+using GameEngine.Bases.Components;
 using GameEngine.Extensions;
 using GameEngine.GameObjects.Base;
 using GameEngine.Intefaces;

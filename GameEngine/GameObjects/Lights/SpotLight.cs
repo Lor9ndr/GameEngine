@@ -1,4 +1,5 @@
 ﻿using GameEngine.Bases;
+using GameEngine.Bases.Components;
 using GameEngine.RenderPrepearings;
 using OpenTK.Mathematics;
 using System;
@@ -29,7 +30,7 @@ namespace GameEngine.GameObjects.Lights
         }
 
 
-        public override void Render(Shader shader, bool drawMesh = false)
+        public override void Render(Shader shader, int textureidx, bool drawMesh = false)
         {
             SetupModel(shader);
             shader.SetVector3("spotLight.position", Transform.Position);

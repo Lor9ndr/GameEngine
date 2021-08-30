@@ -1,4 +1,5 @@
 ﻿using GameEngine.Bases;
+using GameEngine.Bases.Components;
 using GameEngine.RenderPrepearings;
 using OpenTK.Mathematics;
 using System;
@@ -15,11 +16,11 @@ namespace GameEngine.GameObjects.Lights
         public DirectLight(Mesh mesh, LightData lightData, ShadowData shadowData, Transform transform) : base(mesh, lightData,shadowData, transform)
         {
         }
-        public static new float NearPlane => 0.1f;
+        public static new float NearPlane => -40f;
 
         public static new float FarPlane => 1000.0f;
 
-        public override void Render(Shader shader, bool drawMesh)
+        public override void Render(Shader shader, int textureidx, bool drawMesh)
         {
             shader.SetVector3("dirLight.position", Transform.Position);
             shader.SetVector3("dirLight.direction", Transform.Direction);

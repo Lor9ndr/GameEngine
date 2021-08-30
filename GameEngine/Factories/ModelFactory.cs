@@ -1,4 +1,5 @@
 ﻿using GameEngine.Bases;
+using GameEngine.Bases.Components;
 using GameEngine.GameObjects;
 using OpenTK.Mathematics;
 using System;
@@ -15,5 +16,6 @@ namespace GameEngine.Factories
         public static Model GetBridgeModel(Vector3 position) => new(Game.BRIDGE_PATH, new Transform(position, new Vector3(0), new Vector3(0), new Vector3(1f), 0),false);
         public static Model GetManModel(Vector3 position) => new(Game.MAN_PATH, new Transform(position, new Vector3(0), new Vector3(0), new Vector3(0.5f), 0),false);
         public static Model GetTerrainModel(Vector3 position) => new(Game.TERRAIN_PATH, new Transform(position, new Vector3(0), new Vector3(0), new Vector3(0.05f), 0),false);
+        public static Model GetCostumeModel(Vector3 position) => new(Game.OBJ_PATH + "PBR/tv.obj", new Transform(position, new Vector3(0), new Vector3(0), new Vector3(2), 0), false);
     }
 }

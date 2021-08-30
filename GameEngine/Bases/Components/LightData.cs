@@ -1,8 +1,8 @@
 ﻿using OpenTK.Mathematics;
 
-namespace GameEngine.Bases
+namespace GameEngine.Bases.Components
 {
-    public class LightData:IComponent
+    public class LightData : IComponent
     {
         private Vector3 _color;
         private Vector3 _ambient;
@@ -16,10 +16,10 @@ namespace GameEngine.Bases
 
         public LightData(Vector3 color, Vector3 ambient, Vector3 diffuse, Vector3 specular)
         {
-            Color = color;
-            Ambient = ambient;
-            Diffuse = diffuse;
-            Specular = specular;
+            _color = color;
+            _ambient = ambient;
+            _diffuse = diffuse;
+            _specular = specular;
         }
 
         public void PlusAmbient(Vector3 ambient) => Ambient += ambient;

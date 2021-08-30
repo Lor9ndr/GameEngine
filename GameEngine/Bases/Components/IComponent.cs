@@ -1,4 +1,4 @@
-﻿namespace GameEngine.Bases
+﻿namespace GameEngine.Bases.Components
 {
     public interface IComponent
     {

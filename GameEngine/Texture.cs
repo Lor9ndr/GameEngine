@@ -1,4 +1,6 @@
 ﻿using OpenTK.Graphics.OpenGL4;
+using OpenTK.Mathematics;
+using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 
@@ -14,6 +16,10 @@ namespace GameEngine
             Handle = glHandle;
             Type = type;
             Path = path;
+        }
+        public Texture()
+        {
+            Handle = GL.GenTexture();
         }
 
         public static Texture LoadFromFile(string path, string type, string directory)
@@ -60,6 +66,8 @@ namespace GameEngine
             return new Texture(handle, type, path);
         }
 
+        public virtual void Bind(TextureTarget type) => GL.BindTexture(type, Handle);
+        public virtual void SetTexParameters(Vector2i size, PixelInternalFormat format, PixelType type) => throw new NotImplementedException();
 
         public void Use(TextureUnit unit)
         {

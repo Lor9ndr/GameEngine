@@ -17,5 +17,6 @@ namespace GameEngine.RenderPrepearings.FrameBuffers.Base
         {
             DepthShader = depthShader;
         }
+
     }
 }

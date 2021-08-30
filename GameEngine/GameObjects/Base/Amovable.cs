@@ -1,5 +1,6 @@
 ﻿using GameEngine.Attribute;
 using GameEngine.Bases;
+using GameEngine.Bases.Components;
 using OpenTK.Mathematics;
 
 namespace GameEngine.GameObjects.Base

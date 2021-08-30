@@ -1,5 +1,6 @@
 ﻿using GameEngine.Attribute;
 using GameEngine.Bases;
+using GameEngine.Bases.Components;
 using GameEngine.Extensions;
 using GameEngine.GameObjects.Base;
 using GameEngine.RenderPrepearings;
@@ -17,8 +18,11 @@ namespace GameEngine.GameObjects.Lights
     {
         private LightData _lightData;
         private ShadowData _shadowData;
-        protected Mesh _mesh;
-        public static float NearPlane => 0.1f;
+        private Mesh _mesh;
+
+        internal Mesh Mesh { get => _mesh; set => _mesh = value; }
+
+        public static float NearPlane => 1.0f;
 
         public static float FarPlane => 100.0f;
        
@@ -29,7 +33,7 @@ namespace GameEngine.GameObjects.Lights
         public Light(Mesh mesh, LightData lightData, ShadowData shadowData , Transform transform)
             : base(transform)
         {
-            _mesh = mesh;
+            Mesh = mesh;
             LightData = lightData;
             ShadowData = shadowData;
             AddComponent(LightData);
@@ -46,7 +50,7 @@ namespace GameEngine.GameObjects.Lights
             Transform.Model = r1.Multiply(r2).Multiply(r3).Multiply(s).Multiply(t2);
             shader.SetMatrix4("model", Transform.Model);
         }
-        public virtual void Render(Shader shader, bool drawMesh = false)
+        public virtual void Render(Shader shader,int textureidx = 0, bool drawMesh = false)
         {
             shader.Use();
             SetupModel(shader);
@@ -58,13 +62,17 @@ namespace GameEngine.GameObjects.Lights
         public virtual void DrawMesh(Shader shader)
         {
             shader.SetInt("reverse_normals", 1);
-            _mesh.Draw();
+            Mesh.Draw();
             shader.SetInt("reverse_normals", 0);
         }
 
+        public virtual Matrix4 GetProjection => throw new NotImplementedException();
+
+
+        public virtual void UpdateMatrices() => throw new NotImplementedException();
         public void SetAmbient(Vector3 ambient)
         {
-            LightData.Ambient += ambient;
+            LightData.PlusAmbient(ambient);
         }
     }
 }

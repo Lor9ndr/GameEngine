@@ -1,6 +1,6 @@
 ﻿using OpenTK.Mathematics;
 
-namespace GameEngine.Bases
+namespace GameEngine.Bases.Components
 {
     public class Transform : IComponent
     {
@@ -9,7 +9,7 @@ namespace GameEngine.Bases
         private Vector3 _rotation;
         private Vector3 _scale;
         private float _velocity;
-        private Matrix4 _model = Matrix4.Zero;
+        private Matrix4 _model;
         public Vector3 Position { get => _position; set => _position = value; }
 
         public Vector3 Direction { get => _direction; set => _direction = value; }
@@ -20,25 +20,26 @@ namespace GameEngine.Bases
         public Transform(Vector3 position, Vector3 direction, Vector3 rotation, Vector3 scale, float velocity, Matrix4 model= default)
             :this(position,direction)
         {
-            Rotation = rotation;
-            Scale = scale;
-            Velocity = velocity;
-            Model = model;
+            _rotation = rotation;
+            _scale = scale;
+            _velocity = velocity;
+            _model = model;
         }
         public Transform(Vector3 position, Vector3 direction) 
             : this(position)
         {
-            Direction = direction;
+            _direction = direction;
             
 
         }
         public Transform(Vector3 position)
         {
-            Position = position;
-            Scale = new Vector3(1);
-            Velocity = 0;
-            Rotation = new Vector3(0);
-            Model = Matrix4.Zero;
+            _position = position;
+            _direction = new Vector3(0);
+            _scale = new Vector3(1);
+            _velocity = 0;
+            _rotation = new Vector3(0);
+            _model = Matrix4.Zero;
 
         }
 

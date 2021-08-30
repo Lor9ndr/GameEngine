@@ -1,5 +1,7 @@
 ﻿using GameEngine.Intefaces.FrameBuffer;
+using GameEngine.Textures;
 using OpenTK.Graphics.OpenGL4;
+using OpenTK.Mathematics;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,40 +10,33 @@ using System.Threading.Tasks;
 
 namespace GameEngine.RenderPrepearings.FrameBuffers.Base
 {
-    public abstract class FrameBuffer : IFrameBuffer
+    public class FrameBuffer : IFrameBuffer
     {
-        public int FBO { get => _fbo; protected set => _fbo = value; }
-        public WorldRenderer WR => _wr;
-        private int _fbo;
-        private WorldRenderer _wr;
-        public FrameBuffer(WorldRenderer wr) => _wr = wr;
-        private bool _isBinded = false;
 
-        public void Bind() 
+        public int FBO { get => _fbo; protected set { _fbo = value; } }
+        public Vector2i Size { get => _size; set => _size = value; }
+        public List<Texture> Textures { get => _textures; }
+        public CubeMap CubeMap { get => _cubeMap;}
+
+        private List<Texture> _textures;
+        private CubeMap _cubeMap;
+        private Vector2i _size;
+        private ClearBufferMask _bufferMask;
+        private int _fbo;
+
+
+
+        public FrameBuffer( Vector2i size, ClearBufferMask bufferMask)
         {
-            if (!_isBinded)
-            {
-                GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fbo);
-                _isBinded = true;
-            }
-            else
-            {
-                Unbind();
-                Bind();
-            }
+            _size = size;
+            _bufferMask = bufferMask;
         }
-        public void Unbind()
-        {
-            if (_isBinded)
-            {
-                GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
-                _isBinded = false;
-            }
-        }
-        public virtual void Setup()
-        {
-            _fbo = GL.GenFramebuffer();
-        }
+
+        public void Bind() => GL.BindFramebuffer(FramebufferTarget.Framebuffer, _fbo);
+        public void Unbind() => GL.BindFramebuffer(FramebufferTarget.Framebuffer, 0);
+        public virtual void Setup() => _fbo = GL.GenFramebuffer();
+
+
         public bool CheckState()
         {
             if (GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer) == FramebufferErrorCode.FramebufferComplete)
@@ -54,6 +49,30 @@ namespace GameEngine.RenderPrepearings.FrameBuffers.Base
                 Console.WriteLine(GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer));
                 return false;
             }
+        }
+        public void Clear() => GL.Clear(_bufferMask);
+        public void Activate()
+        {
+            Bind();
+            SetViewPort();
+            Clear();
+        }
+
+        private void SetViewPort() => GL.Viewport(0, 0, Size.X, Size.Y);
+        public void AttachCubeMap(FramebufferAttachment attachment, PixelInternalFormat format, PixelType type )
+        {
+            _cubeMap = new CubeMap();
+            _cubeMap.SetTexParameters(Size, format, type);
+            GL.FramebufferTexture(FramebufferTarget.Framebuffer, attachment, _cubeMap.Handle,0);
+            if (!CheckState())
+            {
+                throw new Exception();
+            }
+        }
+        public void DisableColorBuffer()
+        {
+            GL.DrawBuffer(DrawBufferMode.None);
+            GL.ReadBuffer(ReadBufferMode.None);
         }
         public virtual void Render(Camera camera)
         {

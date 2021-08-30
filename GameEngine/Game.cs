@@ -19,6 +19,7 @@ using System.Threading.Tasks;
 using ImGuiNET;
 using GameEngine.Factories;
 using GameEngine.Bases;
+using GameEngine.Bases.Components;
 
 namespace GameEngine
 {
@@ -40,6 +41,7 @@ namespace GameEngine
         public static double Time => _time;
         public static int Width = 1920;
         public static int Height = 1080;
+        public static Vector2i ShadowSize = new Vector2i(1024, 1024);
         public KeyboardState Keyboard { get; private set; }
         #endregion
 
@@ -56,9 +58,6 @@ namespace GameEngine
 
         private Shader LightBoxShader;
 
-        private ShadowFrameBuffer _shadowFB;
-
-        private static Texture _lightTexture = Texture.LoadFromFile("../../../Resources/Textures/blub.png", "texture_diffuse", string.Empty);
         private Light _sun;
         internal static int Shadows = 1;
         private bool enabled;
@@ -109,15 +108,15 @@ namespace GameEngine
             #endregion
 
             #region Lights
-            _sun = LightFactory.GetDirectLight(new Vector3(0, 100, 0), new Vector3(0));
-            Light sl = LightFactory.GetSpotLight(_camera.Position, _camera.Front);
-            _lights.Add(sl);
-            _lights.Add(_sun);
+            //_sun = LightFactory.GetDirectLight(new Vector3(0, 100, 0), new Vector3(0));
+            //Light sl = LightFactory.GetSpotLight(_camera.Position, _camera.Front);
+            //_lights.Add(sl);
+            //_lights.Add(_sun);
 
             for (int i = 0; i < 2; i++)
             {
                 var position = new Vector3(rd.Next(-50, 60), rd.Next(5, 50), rd.Next(-50, 50));
-                _lights.Add(LightFactory.GetRandomColorPointLight(position));
+                _lights.Add(LightFactory.GetPointLight(position));
             }
             var ter = ModelFactory.GetTerrainModel(new Vector3(0));
             #endregion
@@ -125,8 +124,6 @@ namespace GameEngine
             _models.Add(ter);
             _worldRenderer = new WorldRenderer(_models, _lights);
             _camera.Enable(this);
-            _shadowFB = new ShadowFrameBuffer(_worldRenderer);
-            _shadowFB.Setup();
 
             controller = new ImGuiController(this);
             ImGui.StyleColorsClassic();
@@ -142,12 +139,20 @@ namespace GameEngine
             GL.Enable(EnableCap.DepthTest);
             GL.PolygonOffset(1.1f, 4.0f);
             ImGui.NewFrame();
-            _shadowFB.RenderBuffer(_camera);
+            _worldRenderer.Render(_camera, false);
 #if DEBUG
-            _worldRenderer.RenderLights(_camera, LightBoxShader, true);
+            _worldRenderer.SetupCamera(_camera, LightBoxShader);
+            foreach (var item in _worldRenderer.Lights)
+            {
+                item.SetupModel(LightBoxShader);
+                item.Mesh.Textures[0].Use(TextureUnit.Texture0);
+                LightBoxShader.SetVector3("lightColor", item.LightData.Color);
+                item.DrawMesh(LightBoxShader);
+            }
 #endif
             onDrawGUI();
             controller.Render();
+            ImGui.EndFrame();
 
             SwapBuffers();
         }
@@ -159,14 +164,14 @@ namespace GameEngine
                 $"FPS: {FPS}," +
             $" Objects: {_models.Count}," +
             $" Lights: {_lights.Count}, " +
-            $"CAMERAPOS: {_camera.Position}" +
-            $"Shadows: {Shadows}";
+            $" CAMERAPOS: {_camera.Position}" +
+            $" Shadows: {Shadows}";
             _worldRenderer.Update();
             foreach (var item in _lights.OfType<DirectLight>())
             {
                 item.Transform.Position = new Vector3((float)(10 * Math.Sin(Time)), 0, (float)(10 * Math.Cos(Time)));
             }
-            _shadowFB.LightShader.SetInt("shadows", Shadows);
+            _worldRenderer.LightShader.SetInt("shadows", Shadows);
 
             controller.Update(this, _deltaTime);
             _time += args.Time;
@@ -178,15 +183,14 @@ namespace GameEngine
 
         protected override void OnResize(ResizeEventArgs e)
         {
-            base.OnResize(e);
-
             // Update the opengl viewport
-            GL.Viewport(0, 0, e.Size.X, e.Size.Y);
-            Game.Width = e.Size.X;
-            Game.Height = e.Size.Y;
+            GL.Viewport(0, 0, e.Width, e.Height);
+            Game.Width = e.Width;
+            Game.Height = e.Height;
 
             // Tell ImGui of the new size
-            controller.WindowResized(e.Size.X, e.Size.Y);
+            //controller.WindowResized(e.Width, e.Height);
+            base.OnResize(e);
         }
         #endregion
 
@@ -260,16 +264,19 @@ namespace GameEngine
                 }
             }
 
-            if (Keyboard.IsKeyPressed(Keys.LeftControl))
+            if (Keyboard.IsKeyDown(Keys.LeftControl))
             {
                 CursorGrabbed = false;
                 _camera.CanMove = CursorGrabbed;
+                CursorVisible = true;
             }
-            if (Keyboard.IsKeyReleased(Keys.LeftControl))
+            if (Keyboard.IsKeyDown(Keys.Enter))
             {
                 CursorGrabbed = true;
                 _camera.CanMove = CursorGrabbed;
+                CursorVisible = false;
             }
+           
 
         }
         void onDrawGUI()
