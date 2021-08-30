@@ -67,7 +67,7 @@ in VS_OUT {
 	vec4 FragPosLightSpace;
 } fs_in;
 
-float near = 0.01; 
+float near = 0.1; 
 float far  = 100.0; 
 
 float LinearizeDepth(float depth);
@@ -91,9 +91,10 @@ void main()
 	// properties
 	vec3 norm = normalize(fs_in.Normal);
 	vec3 viewDir = normalize(viewPos - fs_in.FragPos);
+	float gamma = 2.2;
 
 	vec4 textureColour = texture(material.texture_diffuse0, fs_in.TexCoords);
-	vec3 color =  textureColour.rgb;
+	vec3 color =  pow(textureColour.rgb, vec3(gamma));
 	// phase 1: directional lighting
 	//vec3 result = CalcDirLight(dirLight, norm, viewDir, color);
 	vec3 result = vec3(0);
@@ -102,7 +103,13 @@ void main()
 		result += CalcPointLight(pointLights[i], norm, fs_in.FragPos, viewDir, color, i);    
 	// phase 3: spot light
 	//result += CalcSpotLight(spotLight, norm, fs_in.FragPos, viewDir,color); 
-	
+	//result.rgb = pow(result.rgb, vec3(1.0 / gamma));
+
+	float z = gl_FragCoord.z * 2.0 - 1.0; // transform to NDC [0, 1] => [-1, 1]
+	float linearDepth = (2.0 * near * far) / (z * (far - near) - (far + near)); // take inverse of the projection matrix (perspective)
+	float factor = (near + linearDepth) / (near - far); // convert back to [0, 1]
+
+	result.rgb *= 1 - factor;
 	FragColor = vec4(result, 1.0);
 }
 

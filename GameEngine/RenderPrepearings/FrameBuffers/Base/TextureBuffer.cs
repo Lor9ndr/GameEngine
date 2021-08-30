@@ -1,6 +1,7 @@
 ﻿using GameEngine.GameObjects.Lights;
 using GameEngine.Intefaces.FrameBuffer;
 using OpenTK.Graphics.OpenGL4;
+using OpenTK.Windowing.Common;
 using System;
 
 namespace GameEngine.RenderPrepearings.FrameBuffers.Base

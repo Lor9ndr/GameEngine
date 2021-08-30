@@ -5,6 +5,7 @@ using GameEngine.Intefaces;
 using GameEngine.RenderPrepearings.FrameBuffers.Base;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
+using OpenTK.Windowing.Desktop;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -29,14 +30,22 @@ namespace GameEngine
             GameObjects = gameObjects;
             SkyBox = new SkyBox();
         }
-        public WorldRenderer(List<IRenderable> gameObjects, List<Light> aLights)
+        public WorldRenderer(List<IRenderable> gameObjects, List<Light> aLights, GameWindow window)
         {
             GameObjects = gameObjects;
             Lights = aLights;
             SkyBox = new SkyBox();
             DefaultFBO = new FrameBuffer(new Vector2i(Game.Width, Game.Height), ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
             DefaultFBO.Bind();
+            window.Resize += Window_Resize;
         }
+
+        private void Window_Resize(OpenTK.Windowing.Common.ResizeEventArgs obj)
+        {
+            DefaultFBO.Size = obj.Size;
+            DefaultFBO.SetViewPort();
+        }
+
         public void Render(Camera camera, bool drawlightMesh = false)
         {
 

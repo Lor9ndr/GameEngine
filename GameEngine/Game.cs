@@ -122,12 +122,13 @@ namespace GameEngine
             #endregion
 
             _models.Add(ter);
-            _worldRenderer = new WorldRenderer(_models, _lights);
+            _worldRenderer = new WorldRenderer(_models, _lights, this);
             _camera.Enable(this);
 
-            controller = new ImGuiController(this);
-            ImGui.StyleColorsClassic();
+            /*controller = new ImGuiController(this);
+            ImGui.StyleColorsClassic();*/
             this.Size = new Vector2i(Width, Height);
+            GL.Enable(EnableCap.FramebufferSrgb);
             base.OnLoad();
         }
 
@@ -138,7 +139,7 @@ namespace GameEngine
 
             GL.Enable(EnableCap.DepthTest);
             GL.PolygonOffset(1.1f, 4.0f);
-            ImGui.NewFrame();
+            /*ImGui.NewFrame();*/
             _worldRenderer.Render(_camera, false);
 #if DEBUG
             _worldRenderer.SetupCamera(_camera, LightBoxShader);
@@ -150,9 +151,9 @@ namespace GameEngine
                 item.DrawMesh(LightBoxShader);
             }
 #endif
-            onDrawGUI();
+            /*onDrawGUI();
             controller.Render();
-            ImGui.EndFrame();
+            ImGui.EndFrame();*/
 
             SwapBuffers();
         }
@@ -173,7 +174,7 @@ namespace GameEngine
             }
             _worldRenderer.LightShader.SetInt("shadows", Shadows);
 
-            controller.Update(this, _deltaTime);
+            //controller.Update(this, _deltaTime);
             _time += args.Time;
             _deltaTime = (float)_time - (float)oldTimeSinceStart;
             HandleKeyBoard();
@@ -270,7 +271,7 @@ namespace GameEngine
                 _camera.CanMove = CursorGrabbed;
                 CursorVisible = true;
             }
-            if (Keyboard.IsKeyDown(Keys.Enter))
+            if (Keyboard.IsKeyDown(Keys.LeftAlt))
             {
                 CursorGrabbed = true;
                 _camera.CanMove = CursorGrabbed;

@@ -2,6 +2,7 @@
 using GameEngine.Textures;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +18,6 @@ namespace GameEngine.RenderPrepearings.FrameBuffers.Base
         public Vector2i Size { get => _size; set => _size = value; }
         public List<Texture> Textures { get => _textures; }
         public CubeMap CubeMap { get => _cubeMap;}
-
         private List<Texture> _textures;
         private CubeMap _cubeMap;
         private Vector2i _size;
@@ -58,7 +58,7 @@ namespace GameEngine.RenderPrepearings.FrameBuffers.Base
             Clear();
         }
 
-        private void SetViewPort() => GL.Viewport(0, 0, Size.X, Size.Y);
+        public void SetViewPort() => GL.Viewport(0, 0, Size.X, Size.Y);
         public void AttachCubeMap(FramebufferAttachment attachment, PixelInternalFormat format, PixelType type )
         {
             _cubeMap = new CubeMap();

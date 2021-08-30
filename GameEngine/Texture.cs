@@ -33,7 +33,7 @@ namespace GameEngine
             // Bind the handle
             GL.BindTexture(TextureTarget.Texture2D, handle);
 
-
+          
             // Load the image
             using (Bitmap image = new(path))
             {
@@ -45,7 +45,7 @@ namespace GameEngine
 
                 GL.TexImage2D(TextureTarget.Texture2D,
                     0,
-                    PixelInternalFormat.Rgba,
+                    PixelInternalFormat.SrgbAlpha,
                     image.Width,
                     image.Height,
                     0,
