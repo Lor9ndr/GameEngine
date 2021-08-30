@@ -55,9 +55,7 @@ namespace GameEngine
             // Render a shadow framebuffers
             foreach (var item in Lights.OfType<PointLight>())
             {
-
                 RenderPointLightShadows(item, camera);
-                
             }
 
 

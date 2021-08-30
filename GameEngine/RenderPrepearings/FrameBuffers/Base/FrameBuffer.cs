@@ -16,9 +16,7 @@ namespace GameEngine.RenderPrepearings.FrameBuffers.Base
 
         public int FBO { get => _fbo; protected set { _fbo = value; } }
         public Vector2i Size { get => _size; set => _size = value; }
-        public List<Texture> Textures { get => _textures; }
         public CubeMap CubeMap { get => _cubeMap;}
-        private List<Texture> _textures;
         private CubeMap _cubeMap;
         private Vector2i _size;
         private ClearBufferMask _bufferMask;
@@ -73,9 +71,6 @@ namespace GameEngine.RenderPrepearings.FrameBuffers.Base
         {
             GL.DrawBuffer(DrawBufferMode.None);
             GL.ReadBuffer(ReadBufferMode.None);
-        }
-        public virtual void Render(Camera camera)
-        {
         }
     }
 }

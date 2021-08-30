@@ -67,6 +67,7 @@ namespace GameEngine.GameObjects.Lights
             GL.ActiveTexture(TextureUnit.Texture0 + textureIdx);
             ShadowData.Shadow.CubeMap.Bind();
             shader.SetInt(name + "shadow", textureIdx);
+            shader.SetFloat("far_plane", FarPlane);
             UpdateMatrices();
 
             if (drawMesh)
@@ -79,12 +80,12 @@ namespace GameEngine.GameObjects.Lights
         {
             ShadowData.Render(shader, this, textureIdx);
         }
-        public override Matrix4 GetProjection => Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(90), 1.0f, NearPlane, FarPlane);
+        public override Matrix4 GetProjection => Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(90), Game.ShadowSize.X/Game.ShadowSize.Y, NearPlane, FarPlane);
         public override void UpdateMatrices()
         {
             for (int i = 0; i < LightSpaceMatrices.Length; i++)
             {
-                LightSpaceMatrices[i] =  GetProjection.Multiply(Matrix4.LookAt(Transform.Position, Transform.Position + _directions[i], _ups[i]));
+                LightSpaceMatrices[i] =  Matrix4.LookAt(Transform.Position, Transform.Position + _directions[i], _ups[i]).Multiply(GetProjection);
             }
         }
 

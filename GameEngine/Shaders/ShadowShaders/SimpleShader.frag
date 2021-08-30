@@ -47,7 +47,7 @@ struct SpotLight{
 	float quadratic;
 };
 
-#define NR_POINT_LIGHTS 2
+#define NR_POINT_LIGHTS 5
 uniform SpotLight spotLight;
 uniform DirLight dirLight;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
@@ -55,6 +55,7 @@ uniform Material material;
 uniform sampler2D shadowMap;
 uniform highp vec3 viewPos;
 uniform float far_plane;
+uniform bool gammaEnable;
 
 uniform bool shadows;
 
@@ -68,7 +69,7 @@ in VS_OUT {
 } fs_in;
 
 float near = 0.1; 
-float far  = 100.0; 
+float far  = 1000.0; 
 
 float LinearizeDepth(float depth);
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 color);
@@ -91,10 +92,14 @@ void main()
 	// properties
 	vec3 norm = normalize(fs_in.Normal);
 	vec3 viewDir = normalize(viewPos - fs_in.FragPos);
-	float gamma = 2.2;
+	float gamma = 0.9;
 
 	vec4 textureColour = texture(material.texture_diffuse0, fs_in.TexCoords);
-	vec3 color =  pow(textureColour.rgb, vec3(gamma));
+	vec3 color =  textureColour.rgb;
+	if(gammaEnable)
+	{
+		color = pow(color, vec3(1.0/gamma));
+	}
 	// phase 1: directional lighting
 	//vec3 result = CalcDirLight(dirLight, norm, viewDir, color);
 	vec3 result = vec3(0);
@@ -104,17 +109,18 @@ void main()
 	// phase 3: spot light
 	//result += CalcSpotLight(spotLight, norm, fs_in.FragPos, viewDir,color); 
 	//result.rgb = pow(result.rgb, vec3(1.0 / gamma));
-
+	
 	float z = gl_FragCoord.z * 2.0 - 1.0; // transform to NDC [0, 1] => [-1, 1]
 	float linearDepth = (2.0 * near * far) / (z * (far - near) - (far + near)); // take inverse of the projection matrix (perspective)
 	float factor = (near + linearDepth) / (near - far); // convert back to [0, 1]
-
-	result.rgb *= 1 - factor;
+	
+	result.rgb *= factor;
+	
 	FragColor = vec4(result, 1.0);
 }
 
 // calculates the color when using a directional light.
-vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 color,int i )
+vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 color )
 {
 	float specColor = texture(material.texture_specular0, fs_in.TexCoords).r;
 	vec3 lightColor = light.lightColor;
@@ -132,8 +138,7 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 color,int i )
 	vec3 specular = spec * lightColor;    
 	// calculate shadow
 	float shadow =  shadows ? ShadowDirectCalculation(fs_in.FragPosLightSpace, light) : 0.0;                      
-	vec3 lighting = (texture(material.texture_diffuse0, fs_in.TexCoords).rgb * 
-	(diffuse * (1.0f - shadow) + ambient) + specColor * specular  * (1.0f - shadow))* light.lightColor; 
+	vec3 lighting = (color * (diffuse * (1.0f - shadow) + ambient) + specColor * specular  * (1.0f - shadow))* light.lightColor; 
 	return lighting;
 }
 
@@ -160,65 +165,7 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir,ve
 }
 
 // calculates the color when using a spot light.
-vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 color)
-{
-	// controls how big the area that is lit up is
-	float outerCone = 0.90f;
-	float innerCone = 0.95f;
 
-	// ambient lighting
-	float ambient = 0.20f;
-
-	// diffuse lighting
-	vec3 lightDirection = light.direction;// normalize(light.direction - fragPos);
-	float diffuse = max(dot(normal, lightDirection), 0.0f);
-
-	// specular lighting
-	float specular = 0.0f;
-	if (diffuse != 0.0f)
-	{
-		float specularLight = 0.50f;
-		vec3 viewDirection = normalize(viewPos - fragPos);
-		vec3 halfwayVec = normalize(viewDirection + lightDirection);
-		float specAmount = pow(max(dot(normal, halfwayVec), 0.0f), 16);
-		specular = specAmount * specularLight;
-	};
-
-	// calculates the intensity of the crntPos based on its angle to the center of the light cone
-	float angle = dot(vec3(0.0f, -1.0f, 0.0f), -lightDirection);
-	float inten = clamp((angle - outerCone) / (innerCone - outerCone), 0.0f, 1.0f);
-
-
-	// Shadow value
-	float shadow = 0.0f;
-	// Sets lightCoords to cull space
-	vec3 lightCoords = fs_in.FragPosLightSpace.xyz / fs_in.FragPosLightSpace.w;
-	if(lightCoords.z <= 1.0f)
-	{
-		// Get from [-1, 1] range to [0, 1] range just like the shadow map
-		lightCoords = (lightCoords + 1.0f) / 2.0f;
-		float currentDepth = lightCoords.z;
-		// Prevents shadow acne
-		float bias = max(0.00025f * (1.0f - dot(normal, lightDirection)), 0.000005f);
-
-		// Smoothens out the shadows
-		int sampleRadius = 2;
-		vec2 pixelSize = 1.0 / textureSize(shadowMap, 0);
-		for(int y = -sampleRadius; y <= sampleRadius; y++)
-		{
-			for(int x = -sampleRadius; x <= sampleRadius; x++)
-			{
-				float closestDepth = texture(shadowMap, lightCoords.xy + vec2(x, y) * pixelSize).r;
-				if (currentDepth > closestDepth + bias)
-					shadow += 1.0f;     
-			}    
-		}
-		// Get average shadow
-		shadow /= pow((sampleRadius * 2 + 1), 2);
-
-	}
-	return (texture(material.texture_diffuse0, fs_in.TexCoords).rgb * (diffuse * (1.0f - shadow) * inten + ambient) + texture(material.texture_specular0, fs_in.TexCoords).r * specular * (1.0f - shadow) * inten) * light.lightColor;
-}
 
 
 float ShadowPointCalculation(vec3 fragPos, PointLight light, int idx)

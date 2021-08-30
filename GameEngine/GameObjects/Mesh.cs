@@ -39,7 +39,7 @@ namespace GameEngine.GameObjects
                 else if (name == "texture_height")
                     number = heightNr++.ToString();
                 shader.SetInt($"material.{name + number}", i);
-                shader.SetInt($"diffuse", i);
+                shader.SetInt(name, i);
                 Textures[i].Use(TextureUnit.Texture0 + i);
             }
             base.Draw();

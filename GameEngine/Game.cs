@@ -60,6 +60,7 @@ namespace GameEngine
 
         private Light _sun;
         internal static int Shadows = 1;
+        internal static int GammaEnable = 1;
         private bool enabled;
         private ImGuiController controller;
         #endregion
@@ -108,12 +109,12 @@ namespace GameEngine
             #endregion
 
             #region Lights
-            //_sun = LightFactory.GetDirectLight(new Vector3(0, 100, 0), new Vector3(0));
-            //Light sl = LightFactory.GetSpotLight(_camera.Position, _camera.Front);
-            //_lights.Add(sl);
-            //_lights.Add(_sun);
+            _sun = LightFactory.GetDirectLight(new Vector3(0, 100, 0), new Vector3(0));
+            Light sl = LightFactory.GetSpotLight(_camera.Position, _camera.Front);
+            _lights.Add(sl);
+            _lights.Add(_sun);
 
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < 5; i++)
             {
                 var position = new Vector3(rd.Next(-50, 60), rd.Next(5, 50), rd.Next(-50, 50));
                 _lights.Add(LightFactory.GetPointLight(position));
@@ -146,9 +147,12 @@ namespace GameEngine
             foreach (var item in _worldRenderer.Lights)
             {
                 item.SetupModel(LightBoxShader);
-                item.Mesh.Textures[0].Use(TextureUnit.Texture0);
-                LightBoxShader.SetVector3("lightColor", item.LightData.Color);
-                item.DrawMesh(LightBoxShader);
+                if (item.Mesh != null)
+                {
+                    item.Mesh.Textures[0].Use(TextureUnit.Texture0);
+                    LightBoxShader.SetVector3("lightColor", item.LightData.Color);
+                    item.DrawMesh(LightBoxShader);
+                }
             }
 #endif
             /*onDrawGUI();
@@ -166,13 +170,15 @@ namespace GameEngine
             $" Objects: {_models.Count}," +
             $" Lights: {_lights.Count}, " +
             $" CAMERAPOS: {_camera.Position}" +
-            $" Shadows: {Shadows}";
+            $" Shadows: {Shadows}" +
+            $" Gamma : {GammaEnable}";
             _worldRenderer.Update();
-            foreach (var item in _lights.OfType<DirectLight>())
+            foreach (var item in _lights.OfType<PointLight>())
             {
-                item.Transform.Position = new Vector3((float)(10 * Math.Sin(Time)), 0, (float)(10 * Math.Cos(Time)));
+                item.Transform.Position = new Vector3((float)(10 * Math.Sin(Time)), item.Transform.Position.Y, (float)(10 * Math.Cos(Time)));
             }
             _worldRenderer.LightShader.SetInt("shadows", Shadows);
+            _worldRenderer.LightShader.SetInt("gammaEnable", GammaEnable);
 
             //controller.Update(this, _deltaTime);
             _time += args.Time;
@@ -240,6 +246,7 @@ namespace GameEngine
 
             }
             Shadows = Keyboard.IsKeyDown(Keys.B) ? 0 : 1;
+            GammaEnable = Keyboard.IsKeyDown(Keys.G) ? 0 : 1;
             if (Keyboard.IsKeyDown(Keys.Down))
             {
                 foreach (var item in _lights.OfType<PointLight>())
@@ -277,6 +284,7 @@ namespace GameEngine
                 _camera.CanMove = CursorGrabbed;
                 CursorVisible = false;
             }
+            
            
 
         }

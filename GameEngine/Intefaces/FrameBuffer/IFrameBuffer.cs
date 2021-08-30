@@ -10,6 +10,5 @@ namespace GameEngine.Intefaces.FrameBuffer
     {
         public int FBO { get; }
         public void Setup();
-        public void Render(Camera camera);
     }
 }
