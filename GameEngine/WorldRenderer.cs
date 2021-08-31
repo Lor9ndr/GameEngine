@@ -50,7 +50,6 @@ namespace GameEngine
         {
 
             SetupCamera(camera, DepthCubeShader);
-            Logger.ClearError();
 
             // Render a shadow framebuffers
             foreach (var item in Lights.OfType<PointLight>())
@@ -58,14 +57,9 @@ namespace GameEngine
                 RenderPointLightShadows(item, camera);
             }
 
-
-            Logger.CheckLastError();
             DefaultFBO.Activate();
+
             RenderShader(camera, LightShader);
-            for (int i = 0; i < 6; i++)
-            {
-                GL.DisableVertexAttribArray(i);
-            }
         }
 
         public void RenderLights(Camera camera, Shader shader, bool drawMesh = false, bool setupCamera = true)
@@ -105,16 +99,19 @@ namespace GameEngine
         public void SetupCamera(Camera camera, Shader shader)
         {
             shader.Use();
-            shader.SetMatrix4("projection", camera.GetProjectionMatrix());
-            shader.SetMatrix4("view", camera.GetViewMatrix());
+            shader.SetMatrix4("VP", camera.GetViewMatrix()* camera.GetProjectionMatrix());
             shader.SetVector3("viewPos", camera.Position);
         }
         public void RenderShader(Camera camera, Shader shader)
         {
+
             SkyBox.Render(camera);
             shader.Use();
+
             SetupCamera(camera,shader);
+
             RenderLights(camera, shader);
+
             RenderObjects(camera, shader);
 
         }

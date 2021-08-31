@@ -12,16 +12,8 @@ namespace GameEngine.GameObjects
         public readonly int Handle;
 
         public readonly Dictionary<string, int> UniformLocations;
-        private Dictionary<string, int> _samplers = new Dictionary<string, int>();
-        private Dictionary<string, int> _arraySamplers = new Dictionary<string, int>();
-        private Dictionary<string, int> _uniformCache = new Dictionary<string, int>();
-        private Dictionary<string, bool> WhatSeted = new Dictionary<string, bool>();
         private string _path;
 
-        // This is how you create a simple shader.
-        // Shaders are written in GLSL, which is a language very similar to C in its semantics.
-        // The GLSL source is compiled *at runtime*, so it can optimize itself for the graphics card it's currently being used on.
-        // A commented example of GLSL can be found in shader.vert
         public Shader(string vertPath, string fragPath, string geomPath)
         {
             // There are several different types of shaders, but the only two you need for basic rendering are the vertex and fragment shaders.
@@ -166,41 +158,6 @@ namespace GameEngine.GameObjects
                 // and then add it to the dictionary.
                 UniformLocations.Add(key, location);
             }
-            {
-                int cSampler = 0;
-
-                string findCode = shaderSource;
-
-                int i = findCode.IndexOf("uniform sampler2D");
-                while (i != -1)
-                {
-                    findCode = findCode.Substring(i + 18);
-                    int nx = findCode.IndexOf(';');
-
-                    string var = findCode.Substring(0, nx);
-                    if (var.EndsWith("]")) //Array sampler
-                    {
-                        nx = findCode.IndexOf('[');
-
-                        string name = var.Substring(0, nx);
-
-                        var = var.Substring(nx, var.Length - nx);
-                        var = var.Substring(1, var.Length - 1).Substring(0, var.Length - 2);
-                        int num = Convert.ToInt32(var);
-
-                        _arraySamplers.Add(name, num);
-                        cSampler += num;
-                    }
-                    else
-                    {
-                        _samplers.Add(var, cSampler);
-                        cSampler++;
-                    }
-
-                    i = findCode.IndexOf("uniform sampler2D");
-                }
-            }
-
         }
 
         private static void CompileShader(int shader)
@@ -261,15 +218,7 @@ namespace GameEngine.GameObjects
         /// <param name="data">The data to set</param>
         public void SetInt(string name, int data)
         {
-            GL.UseProgram(Handle);
-            if (CheckUniformContains(name))
-            {
-                GL.Uniform1(UniformLocations[name], data);
-            }
-            /*else
-            {
-                Logger.Write($"Name: {name} Not Found in shader {_path}");
-            }*/
+            GL.Uniform1(GetUniformLocation(name), data);
         }
 
         /// <summary>
@@ -279,15 +228,7 @@ namespace GameEngine.GameObjects
         /// <param name="data">The data to set</param>
         public void SetFloat(string name, float data)
         {
-            GL.UseProgram(Handle);
-            if (CheckUniformContains(name))
-            {
-                GL.Uniform1(UniformLocations[name], data);
-            }
-            /*else
-            {
-                Logger.Write($"Name: {name} Not Found in shader {_path}");
-            }*/
+            GL.Uniform1(GetUniformLocation(name), data);
         }
 
         /// <summary>
@@ -302,22 +243,8 @@ namespace GameEngine.GameObjects
         /// </remarks>
         public void SetMatrix4(string name, Matrix4 data)
         {
-            GL.UseProgram(Handle);
-            if (CheckUniformContains(name))
-            {
-                GL.UniformMatrix4(UniformLocations[name], false, ref data);
-            }
-            else
-            {
-                GL.UniformMatrix4(GetUniformLocation(name), false, ref data);
-            }
-            /* else
-             {
-                 Logger.Write($"Name: {name} Not Found in shader {_path}");
-             }*/
+            GL.UniformMatrix4(GetUniformLocation(name), false, ref data);
         }
-
-        public bool CheckUniformContains(string uniform) => UniformLocations.ContainsKey(uniform);
 
         /// <summary>
         /// Set a uniform Vector3 on this shader.
@@ -326,68 +253,26 @@ namespace GameEngine.GameObjects
         /// <param name="data">The data to set</param>
         public void SetVector3(string name, Vector3 data)
         {
-            GL.UseProgram(Handle);
-            if (CheckUniformContains(name))
-            {
-                GL.Uniform3(UniformLocations[name], data);
-            }
-            
-            /*else
-            {
-                Logger.Write($"Name: {name} Not Found in shader {_path}");
-            }*/
+            GL.Uniform3(GetUniformLocation(name), data);
 
         }
-        public void SetTexture(string name, int data)
-        {
-            if (_samplers.ContainsKey(name))
-            {
-                int sampler = _samplers[name];
-                GL.ActiveTexture(TextureUnit.Texture0 + sampler);
-                GL.BindTexture(TextureTarget.Texture2D, data);
-                GL.Uniform1(GetUniformLocation(name), sampler);
-            }
-
-        }
-
         public void SetVector2(string name, Vector2 data)
         {
-            GL.UseProgram(Handle);
-            if (CheckUniformContains(name))
-            {
-                GL.Uniform2(UniformLocations[name], data);
-            }
-           /* else
-            {
-                Logger.Write($"Name: {name} Not Found in shader {_path}");
-            }*/
-
+            GL.Uniform2(GetUniformLocation(name), data);
         }
         public void SetVector3(string name, float x, float y, float z) => SetVector3(name, new Vector3(x, y, z));
         private int GetUniformLocation(string name)
         {
-            if (_uniformCache.ContainsKey(name))
+            if (UniformLocations.ContainsKey(name))
             {
-                return _uniformCache[name];
+                return UniformLocations[name];
             }
             else
             {
                 int pos = GL.GetUniformLocation(Handle, name);
-                _uniformCache.Add(name, pos);
+                UniformLocations.Add(name, pos);
 
                 return pos;
-            }
-        }
-        public void PrintWhatSet<T>(string name, T data)
-        {
-            var whatNotSeted = WhatSeted.Keys.Except(UniformLocations.Keys).Except(_uniformCache.Keys);
-            if (!WhatSeted.ContainsKey(name))
-            {
-                WhatSeted.Add(name, true);
-            }
-            foreach (var item in whatNotSeted)
-            {
-                Console.WriteLine(item);
             }
         }
     }

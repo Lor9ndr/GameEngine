@@ -11,11 +11,17 @@ namespace GameEngine
         public readonly int Handle;
         public readonly string Type;
         public readonly string Path;
-        public Texture(int glHandle, string type, string path)
+        public Texture(int glHandle, string type, string path) : this(glHandle,type)
+        {
+            Path = path;
+        }
+        public Texture(int glHandle)
         {
             Handle = glHandle;
+        }
+        public Texture(int glHandle, string type) : this(glHandle)
+        {
             Type = type;
-            Path = path;
         }
         public Texture()
         {
@@ -73,6 +79,11 @@ namespace GameEngine
         {
             GL.ActiveTexture(unit);
             GL.BindTexture(TextureTarget.Texture2D, Handle);
+        }
+        public void Use(TextureUnit unit, TextureTarget taget)
+        {
+            GL.ActiveTexture(unit);
+            GL.BindTexture(taget, Handle);
         }
     }
 }

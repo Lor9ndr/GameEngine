@@ -114,7 +114,7 @@ namespace GameEngine
             _lights.Add(sl);
             _lights.Add(_sun);
 
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 3; i++)
             {
                 var position = new Vector3(rd.Next(-50, 60), rd.Next(5, 50), rd.Next(-50, 50));
                 _lights.Add(LightFactory.GetPointLight(position));
@@ -131,13 +131,13 @@ namespace GameEngine
             this.Size = new Vector2i(Width, Height);
             GL.Enable(EnableCap.FramebufferSrgb);
             base.OnLoad();
+            ToggleFullscreen();
         }
 
         protected override void OnRenderFrame(FrameEventArgs args)
         {
 
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-
             GL.Enable(EnableCap.DepthTest);
             GL.PolygonOffset(1.1f, 4.0f);
             /*ImGui.NewFrame();*/
@@ -177,6 +177,7 @@ namespace GameEngine
             {
                 item.Transform.Position = new Vector3((float)(10 * Math.Sin(Time)), item.Transform.Position.Y, (float)(10 * Math.Cos(Time)));
             }
+            _worldRenderer.LightShader.Use();
             _worldRenderer.LightShader.SetInt("shadows", Shadows);
             _worldRenderer.LightShader.SetInt("gammaEnable", GammaEnable);
 
@@ -192,12 +193,16 @@ namespace GameEngine
         {
             // Update the opengl viewport
             GL.Viewport(0, 0, e.Width, e.Height);
-            Game.Width = e.Width;
-            Game.Height = e.Height;
+            Game.Width = Size.X;
+            Game.Height = Size.Y;
 
             // Tell ImGui of the new size
             //controller.WindowResized(e.Width, e.Height);
             base.OnResize(e);
+        }
+        protected override void OnUnload()
+        {
+            base.OnUnload();
         }
         #endregion
 
@@ -245,6 +250,10 @@ namespace GameEngine
                 }
 
             }
+            if (Keyboard.IsKeyDown(Keys.X))
+            {
+                ToggleFullscreen();
+            }
             Shadows = Keyboard.IsKeyDown(Keys.B) ? 0 : 1;
             GammaEnable = Keyboard.IsKeyDown(Keys.G) ? 0 : 1;
             if (Keyboard.IsKeyDown(Keys.Down))
@@ -287,6 +296,22 @@ namespace GameEngine
             
            
 
+        }
+
+        private void ToggleFullscreen()
+        {
+            if (IsFullscreen)
+            {
+                WindowBorder = WindowBorder.Resizable;
+                WindowState = WindowState.Normal;
+                _camera.AspectRatio = Size.X / (float)Size.Y;
+            }
+            else
+            {
+                WindowBorder = WindowBorder.Hidden;
+                WindowState = WindowState.Fullscreen;
+                _camera.AspectRatio = Size.X / (float)Size.Y;
+            }
         }
         void onDrawGUI()
         {

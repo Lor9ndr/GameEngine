@@ -22,9 +22,7 @@ namespace GameEngine.GameObjects
         private readonly string _path;
         private bool _reverseNormals = false;
 
-
-
-
+        #region Constructor
         public Model(string path, Transform transform, bool reverseNormals = false)
             :base(transform)
         {
@@ -33,7 +31,9 @@ namespace GameEngine.GameObjects
             _reverseNormals = reverseNormals;
             LoadModel();
         }
+        #endregion
 
+        #region Public Methods
         public void Render(Shader shader)
         {
 
@@ -92,7 +92,8 @@ namespace GameEngine.GameObjects
                 _models.Add(_path, this);
             }
         }
-
+        #endregion
+        #region Private Methods
         private void ProcessNode(Node node, Scene scene)
         {
             for (int i = 0; i < node.MeshCount; i++)
@@ -189,7 +190,7 @@ namespace GameEngine.GameObjects
 
             return textures;
         }
-
+        #endregion
         public void Dispose()
         {
             foreach (var item in _meshes)
@@ -198,6 +199,5 @@ namespace GameEngine.GameObjects
             }
         }
 
-       
     }
 }

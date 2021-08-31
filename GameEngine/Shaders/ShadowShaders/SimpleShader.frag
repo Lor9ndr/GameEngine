@@ -29,6 +29,7 @@ struct PointLight {
 	vec3 diffuse;
 	vec3 specular;
 	samplerCube shadow;
+	float farPlane;
 };
 
 struct SpotLight{
@@ -46,8 +47,9 @@ struct SpotLight{
 	float linear;
 	float quadratic;
 };
-
-#define NR_POINT_LIGHTS 5
+#define NUM_SAMPLES 20
+#define NUM_SAMPLESF 20.0
+#define NR_POINT_LIGHTS 3
 uniform SpotLight spotLight;
 uniform DirLight dirLight;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
@@ -73,11 +75,13 @@ float far  = 1000.0;
 
 float LinearizeDepth(float depth);
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 color);
-vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 color, int idx);
+vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 diffColor, vec3 specColor);
 vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir, vec3 color);
-float ShadowPointCalculation(vec3 fragPos, PointLight light,int idx);
+float ShadowPointCalculation(vec3 fragPos, PointLight light,vec3 normal, vec3 lightDir);
 float ShadowDirectCalculation(vec4 fragPosLightSpace, DirLight light);
-vec3 gridSamplingDisk[20] = vec3[]
+
+
+vec3 sampleOffsetDirections[NUM_SAMPLES] = vec3[]
 (
    vec3(1, 1,  1), vec3( 1, -1,  1), vec3(-1, -1,  1), vec3(-1, 1,  1), 
    vec3(1, 1, -1), vec3( 1, -1, -1), vec3(-1, -1, -1), vec3(-1, 1, -1),
@@ -94,18 +98,17 @@ void main()
 	vec3 viewDir = normalize(viewPos - fs_in.FragPos);
 	float gamma = 0.9;
 
-	vec4 textureColour = texture(material.texture_diffuse0, fs_in.TexCoords);
-	vec3 color =  textureColour.rgb;
-	if(gammaEnable)
-	{
-		color = pow(color, vec3(1.0/gamma));
-	}
+	vec4 diff = texture(material.texture_diffuse0, fs_in.TexCoords);
+	vec3 diffColor =  diff.rgb;
+	vec3 specColor = texture(material.texture_specular0, fs_in.TexCoords).rgb;
+
+
 	// phase 1: directional lighting
 	//vec3 result = CalcDirLight(dirLight, norm, viewDir, color);
 	vec3 result = vec3(0);
 	// phase 2: point lights
 	for(int i = 0; i < NR_POINT_LIGHTS; i++)
-		result += CalcPointLight(pointLights[i], norm, fs_in.FragPos, viewDir, color, i);    
+		result += CalcPointLight(pointLights[i], norm, fs_in.FragPos, viewDir, diffColor, specColor);    
 	// phase 3: spot light
 	//result += CalcSpotLight(spotLight, norm, fs_in.FragPos, viewDir,color); 
 	//result.rgb = pow(result.rgb, vec3(1.0 / gamma));
@@ -114,8 +117,11 @@ void main()
 	float linearDepth = (2.0 * near * far) / (z * (far - near) - (far + near)); // take inverse of the projection matrix (perspective)
 	float factor = (near + linearDepth) / (near - far); // convert back to [0, 1]
 	
-	result.rgb *= factor;
-	
+	result.rgb *= 1.0 -factor;
+	if(gammaEnable)
+	{
+		result = pow(result, vec3(1.0/gamma));
+	}
 	FragColor = vec4(result, 1.0);
 }
 
@@ -143,64 +149,74 @@ vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir, vec3 color )
 }
 
 // calculates the color when using a point light.
-vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir,vec3 color, int idx)
+vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir,vec3 diffColor, vec3 specColor)
 {
-	float specColor = texture(material.texture_specular0, fs_in.TexCoords).r;
-	vec3 lightColor = light.lightColor;
-	// ambient
-	vec3 ambient =  light.ambient * color;
+	vec3 ambient = light.ambient * diffColor;
+
 	// diffuse
 	vec3 lightDir = normalize(light.position - fs_in.FragPos);
-	float diff = max(dot(lightDir, normal), 0.0);
-	vec3 diffuse = diff * lightColor;
+	float diff = max(dot(normal, lightDir), 0.0);
+	vec3 diffuse = light.diffuse * (diff * diffColor);
+
 	// specular
-	vec3 reflectDir = reflect(-lightDir, normal);
-	float spec = 0.0;
-	vec3 halfwayDir = normalize(lightDir + viewDir);  
-	spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
-	vec3 specular = spec * lightColor;    
-	// calculate shadow
-	float shadow = shadows ? ShadowPointCalculation(fs_in.FragPos, light,idx) : 0.0;                      
-	return (color *(diffuse * (1.0f - shadow) + ambient) +  specColor * specular  * (1.0f - shadow) + ambient) * lightColor; 
+	vec3 specular = vec3(0.0);
+	if (diff > 0) {
+		// if diff <= 0, object is "behind" light
+
+		float dotProd = 0.0;
+		// calculate using Blinn-Phong model
+		vec3 halfwayDir = normalize(lightDir + viewDir);
+		dotProd = dot(normal, halfwayDir);
+
+		float spec = pow(max(dotProd, 0.0), material.shininess * 128);
+		specular = light.specular * (spec * specColor);
+	}
+
+	// calculate attenuation
+	float dist = length(light.position - fs_in.FragPos);
+	float attenuation = 1.0 / (light.constant + light.linear * dist + light.quadratic * (dist * dist));
+	ambient *= attenuation;
+	diffuse *= attenuation;
+	specular *= attenuation;
+
+	float shadow = shadows ? ShadowPointCalculation(fs_in.FragPos, light,normal,lightDir) : 0.0;     
+	
+	return ambient + (1.0 - shadow) * (diffuse + specular); 
 }
 
 // calculates the color when using a spot light.
 
 
 
-float ShadowPointCalculation(vec3 fragPos, PointLight light, int idx)
+float ShadowPointCalculation(vec3 fragPos, PointLight light,vec3 normal, vec3 lightDir)
 {
-	// get vector between fragment position and light position
-	vec3 fragToLight = fragPos - light.position;
-	// use the fragment to light vector to sample from the depth map    
-	// float closestDepth = texture(shadowCubeMap, fragToLight).r;
-	// it is currently in linear range between [0,1], let's re-transform it back to original depth value
-	// closestDepth *= far_plane;
-	// now get current linear depth as the length between the fragment and light position
-	float currentDepth = length(fragToLight);
-	// test for shadows
-	// float bias = 0.05; // we use a much larger bias since depth is now in [near_plane, far_plane] range
-	// float shadow = currentDepth -  bias > closestDepth ? 1.0 : 0.0;
+	// get vector from the light to the fragment
+	vec3 lightToFrag = fs_in.FragPos - light.position;
+
+	// get current depth
+	float currentDepth = length(lightToFrag);
+
+	// calculate bias
+	float minBias = 0.005;
+	float maxBias = 0.05;
+	float bias = max(maxBias * (1.0 - dot(normal, lightDir)), minBias);
+
 	// PCF
-	 float shadow = 0.0;
-	 float bias = 0.05; 
-	 float samples = 4.0;
-	 float offset = 0.1;
-	 for(float x = -offset; x < offset; x += offset / (samples * 0.5))
-	 {
-		for(float y = -offset; y < offset; y += offset / (samples * 0.5))
-		{
-			for(float z = -offset; z < offset; z += offset / (samples * 0.5))
-			{
-				float closestDepth = texture(light.shadow, fragToLight + vec3(x, y, z)).r; // use lightdir to lookup cubemap
-				closestDepth *= far_plane;   // Undo mapping [0;1]
-				if(currentDepth - bias > closestDepth)
-					shadow += 1.0;
-			}
+	float shadow = 0.0;
+	float viewDist = length(viewPos);
+	float diskRadius = (1.0 + (viewDist / light.farPlane)) / 30.0;
+	for (int i = 0; i < NUM_SAMPLES; i++) {
+		float pcfDepth = texture(light.shadow, lightToFrag + sampleOffsetDirections[i] * diskRadius).r;
+		pcfDepth *= light.farPlane;
+
+		if (currentDepth - bias > pcfDepth) {
+			shadow += 1.0;
 		}
-	 }
-	 shadow /= (samples * samples * samples);
-	 return shadow;
+	}
+
+	shadow /= NUM_SAMPLESF;
+
+	return shadow;
 	
 
 }

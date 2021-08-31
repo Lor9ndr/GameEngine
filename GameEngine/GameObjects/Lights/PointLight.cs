@@ -60,10 +60,11 @@ namespace GameEngine.GameObjects.Lights
             shader.SetVector3(name + "specular", LightData.Specular);
             shader.SetVector3(name + "lightColor", LightData.Color);
             shader.SetFloat(name + "constant", 1.0f);
-            shader.SetFloat(name + "linear", 0.5f);
-            shader.SetFloat(name + "quadratic", 0.064f);
+            shader.SetFloat(name + "linear", 0.0014f);
+            shader.SetFloat(name + "quadratic", 0.000007f);
             shader.SetVector3("lightColor", LightData.Color);
             shader.SetVector3("lightPos", Transform.Position);
+            shader.SetFloat(name + "farPlane", FarPlane);
             GL.ActiveTexture(TextureUnit.Texture0 + textureIdx);
             ShadowData.Shadow.CubeMap.Bind();
             shader.SetInt(name + "shadow", textureIdx);

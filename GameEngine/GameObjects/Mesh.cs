@@ -20,29 +20,20 @@ namespace GameEngine.GameObjects
             Textures = textures;
             Setup(setupLevel, vao);
         }
-        public void Render(Shader shader)
+        public void Render(Shader shader, TextureTarget target = TextureTarget.Texture2D)
         {
-            int diffuseNr = 0;
-            int specularNr = 0;
-            int normalNr = 0;
-            int heightNr = 0;
+            shader.Use();
             for (int i = 0; i < Textures?.Count; i++)
             {
-                string number = string.Empty;
                 string name = Textures[i].Type;
-                if (name == "texture_diffuse")
-                    number = diffuseNr++.ToString();
-                else if (name == "texture_specular")
-                    number = specularNr++.ToString();
-                else if (name == "texture_normal")
-                    number = normalNr++.ToString();
-                else if (name == "texture_height")
-                    number = heightNr++.ToString();
-                shader.SetInt($"material.{name + number}", i);
+                shader.SetInt($"material.{name}", i);
                 shader.SetInt(name, i);
-                Textures[i].Use(TextureUnit.Texture0 + i);
+
+                Textures[i].Use(TextureUnit.Texture0 + i, target);
+
             }
             base.Draw();
+
         }
     }
 }
