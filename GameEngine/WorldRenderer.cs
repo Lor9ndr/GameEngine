@@ -51,16 +51,27 @@ namespace GameEngine
 
             SetupCamera(camera, DepthCubeShader);
 
+            GL.Enable(EnableCap.CullFace);
+            GL.CullFace(CullFaceMode.Front);
+            GL.FrontFace(FrontFaceDirection.Ccw);
             // Render a shadow framebuffers
             foreach (var item in Lights.OfType<PointLight>())
             {
                 RenderPointLightShadows(item, camera);
             }
-
+            foreach (var item in Lights.OfType<DirectLight>())
+            {
+                RenderDirectLightShadow(item, camera);
+            }
+            // Render scene as normal
             DefaultFBO.Activate();
+
+            GL.Disable(EnableCap.CullFace);
 
             RenderShader(camera, LightShader);
         }
+
+       
 
         public void RenderLights(Camera camera, Shader shader, bool drawMesh = false, bool setupCamera = true)
         {
@@ -96,12 +107,14 @@ namespace GameEngine
                 item.Update();
             }
         }
+
         public void SetupCamera(Camera camera, Shader shader)
         {
             shader.Use();
             shader.SetMatrix4("VP", camera.GetViewMatrix()* camera.GetProjectionMatrix());
             shader.SetVector3("viewPos", camera.Position);
         }
+
         public void RenderShader(Camera camera, Shader shader)
         {
 
@@ -115,6 +128,15 @@ namespace GameEngine
             RenderObjects(camera, shader);
 
         }
+        private void RenderDirectLightShadow(DirectLight light, Camera camera)
+        {
+            light.ShadowData.Shadow.Activate();
+            DepthDirectShader.Use();
+            DepthDirectShader.SetMatrix4("lightSpaceMatrix", light.LightSpaceMatrix);
+            DepthDirectShader.SetMatrix4("model", light.Transform.Model);
+            RenderObjects(camera, DepthDirectShader);
+            light.ShadowData.Shadow.Unbind();
+        }
         public void RenderPointLightShadows(PointLight light, Camera camera)
         {
             light.ShadowData.Shadow.Activate();
@@ -127,6 +149,7 @@ namespace GameEngine
             }
             DepthCubeShader.SetVector3("lightPos", light.Transform.Position);
             DepthCubeShader.SetFloat("far_plane", PointLight.FarPlane);
+            DepthCubeShader.SetMatrix4("model", light.Transform.Model);
 
             RenderObjects(camera, DepthCubeShader);
             light.ShadowData.Shadow.Unbind();

@@ -57,42 +57,9 @@ namespace GameEngine.GameObjects
             shader.SetInt("reverse_normals", 0);
         }
 
-        public void LoadModel()
-        {
-            if (_models.TryGetValue(_path, out var m))
-            {
-                foreach (var item in m._meshes)
-                {
-                    _meshes.Add(new Mesh(item.Vertices, item.Indices, item.Textures, item.ObjectSetupper.GetVAOClass()));
-                }
-            }
-            else
-            {
-                using AssimpContext importer = new();
-                if (!importer.IsImportFormatSupported(Path.GetExtension(_path)))
-                {
-                    throw new ArgumentException("Model format " + Path.GetExtension(_path) + " is not supported!  Cannot load {1}", "filename");
-                }
-                importer.SetConfig(new NormalSmoothingAngleConfig(66.0f));
-                LogStream.IsVerboseLoggingEnabled = true;
-                var logger = new ConsoleLogStream();
-                logger.Attach();
-                Scene scene = importer.ImportFile(_path,
-                   PostProcessSteps.Triangulate |
-                    PostProcessSteps.GenerateUVCoords |
-                    PostProcessSteps.GenerateNormals |
-                    PostProcessSteps.FlipUVs |
-                    PostProcessSteps.FindDegenerates |
-                    PostProcessSteps.FixInFacingNormals|
-                    PostProcessSteps.GenerateSmoothNormals |
-                    PostProcessSteps.OptimizeMeshes
-                    );
-                logger.Detach();
-                ProcessNode(scene.RootNode, scene);
-                _models.Add(_path, this);
-            }
-        }
+       
         #endregion
+
         #region Private Methods
         private void ProcessNode(Node node, Scene scene)
         {
@@ -146,20 +113,20 @@ namespace GameEngine.GameObjects
             }
             indices.AddRange(mesh.GetIndices());
             Material material = scene.Materials[mesh.MaterialIndex];
-            List<Texture> diffuseMaps = LoadMaterialTexture(material, TextureType.Diffuse, "texture_diffuse");
+            List<Texture> diffuseMaps = LoadMaterialTexture(material, TextureType.Diffuse, "texture_diffuse0");
             textures.AddRange(diffuseMaps);
 
-            List<Texture> specularMaps = LoadMaterialTexture(material, TextureType.Specular, "texture_specular");
+            List<Texture> specularMaps = LoadMaterialTexture(material, TextureType.Specular, "texture_specular0");
             textures.AddRange(specularMaps);
 
-            List<Texture> normalMaps = LoadMaterialTexture(material, TextureType.Height, "texture_normal");
+            List<Texture> normalMaps = LoadMaterialTexture(material, TextureType.Height, "texture_normal0");
             textures.AddRange(normalMaps);
 
-            List<Texture> heightMaps = LoadMaterialTexture(material, TextureType.Ambient, "texture_height");
+            List<Texture> heightMaps = LoadMaterialTexture(material, TextureType.Ambient, "texture_height0");
             textures.AddRange(heightMaps);
             if (textures.Count == 0)
             {
-                textures.Add(Texture.LoadFromFile("../../../Resources/Textures/checker.jpg", "texture_diffuse", string.Empty));
+                textures.Add(Texture.LoadFromFile("../../../Resources/Textures/checker.jpg", "texture_diffuse0", string.Empty));
             }
             using Mesh m = new(vertices.ToArray(), indices.ToArray(), textures);
             return m;
@@ -182,13 +149,52 @@ namespace GameEngine.GameObjects
                 }
                 if (!skip)
                 {
-                    Texture texture = Texture.LoadFromFile(str.FilePath, typeName, directory);
-                    textures.Add(texture);
-                    _loadedTextures.Add(texture);
+                    if (str.FilePath != null)
+                    {
+                        Texture texture = Texture.LoadFromFile(str.FilePath, typeName, directory);
+                        textures.Add(texture);
+                        _loadedTextures.Add(texture);
+                    }
+                    
                 }
             }
 
             return textures;
+        }
+        private void LoadModel()
+        {
+            if (_models.TryGetValue(_path, out var m))
+            {
+                foreach (var item in m._meshes)
+                {
+                    _meshes.Add(new Mesh(item.Vertices, item.Indices, item.Textures, item.ObjectSetupper.GetVAOClass()));
+                }
+            }
+            else
+            {
+                using AssimpContext importer = new();
+                if (!importer.IsImportFormatSupported(Path.GetExtension(_path)))
+                {
+                    throw new ArgumentException("Model format " + Path.GetExtension(_path) + " is not supported!  Cannot load {1}", "filename");
+                }
+                importer.SetConfig(new NormalSmoothingAngleConfig(66.0f));
+                LogStream.IsVerboseLoggingEnabled = true;
+                var logger = new ConsoleLogStream();
+                logger.Attach();
+                Scene scene = importer.ImportFile(_path,
+                   PostProcessSteps.Triangulate |
+                    PostProcessSteps.GenerateUVCoords |
+                    PostProcessSteps.GenerateNormals |
+                    PostProcessSteps.FlipUVs |
+                    PostProcessSteps.FindDegenerates |
+                    PostProcessSteps.FixInFacingNormals |
+                    PostProcessSteps.GenerateSmoothNormals |
+                    PostProcessSteps.OptimizeMeshes
+                    );
+                logger.Detach();
+                ProcessNode(scene.RootNode, scene);
+                _models.Add(_path, this);
+            }
         }
         #endregion
         public void Dispose()

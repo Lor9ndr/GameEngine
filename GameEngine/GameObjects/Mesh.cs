@@ -30,7 +30,6 @@ namespace GameEngine.GameObjects
                 shader.SetInt(name, i);
 
                 Textures[i].Use(TextureUnit.Texture0 + i, target);
-
             }
             base.Draw();
 

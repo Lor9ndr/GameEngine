@@ -20,22 +20,24 @@ namespace GameEngine.GameObjects.Lights
         private ShadowData _shadowData;
         private Mesh _mesh;
 
-        internal Mesh Mesh { get => _mesh; set => _mesh = value; }
-
         public static float NearPlane => 1.0f;
 
         public static float FarPlane => 100.0f;
-       
+
+        private Matrix4 _lightSpaceMatrix;
+
+        internal Mesh Mesh { get => _mesh; set => _mesh = value; }
+        public Matrix4 LightSpaceMatrix { get => _lightSpaceMatrix; set => _lightSpaceMatrix = value; }
 
         public LightData LightData { get => _lightData; set => _lightData = value; }
         public ShadowData ShadowData { get => _shadowData; set => _shadowData = value; }
 
-        public Light(Mesh mesh, LightData lightData, ShadowData shadowData , Transform transform)
+        public Light(Mesh mesh, LightData lightData, Transform transform)
             : base(transform)
         {
             Mesh = mesh;
             LightData = lightData;
-            ShadowData = shadowData;
+            ShadowData = new ShadowData();
             AddComponent(LightData);
             AddComponent(ShadowData);
 

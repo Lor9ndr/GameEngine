@@ -13,16 +13,16 @@ namespace GameEngine.RenderPrepearings.FrameBuffers.Base
 {
     public class FrameBuffer : IFrameBuffer
     {
-
         public int FBO { get => _fbo; protected set { _fbo = value; } }
         public Vector2i Size { get => _size; set => _size = value; }
         public CubeMap CubeMap { get => _cubeMap;}
+        public Texture Texture { get => _texture; }
+
+        private Texture _texture;
         private CubeMap _cubeMap;
         private Vector2i _size;
         private ClearBufferMask _bufferMask;
         private int _fbo;
-
-
 
         public FrameBuffer( Vector2i size, ClearBufferMask bufferMask)
         {
@@ -44,8 +44,7 @@ namespace GameEngine.RenderPrepearings.FrameBuffers.Base
             }
             else
             {
-                Console.WriteLine(GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer));
-                return false;
+                throw new Exception(GL.CheckFramebufferStatus(FramebufferTarget.Framebuffer).ToString());
             }
         }
         public void Clear() => GL.Clear(_bufferMask);
@@ -62,6 +61,16 @@ namespace GameEngine.RenderPrepearings.FrameBuffers.Base
             _cubeMap = new CubeMap();
             _cubeMap.SetTexParameters(Size, format, type);
             GL.FramebufferTexture(FramebufferTarget.Framebuffer, attachment, _cubeMap.Handle,0);
+            if (!CheckState())
+            {
+                throw new Exception();
+            }
+        }
+        public void AttachTexture2DMap(FramebufferAttachment attachment, PixelInternalFormat format, PixelType type)
+        {
+            _texture = new Texture();
+            _texture.SetTexParameters(Size, format, type);
+            GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, attachment,TextureTarget.Texture2D, _texture.Handle, 0);
             if (!CheckState())
             {
                 throw new Exception();

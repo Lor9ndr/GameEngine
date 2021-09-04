@@ -15,7 +15,7 @@ out VS_OUT {
 
 uniform mat4 VP;
 uniform mat4 model;
-uniform mat4 lightSpaceMatrix;
+uniform highp mat4 lightSpaceMatrix;
 uniform bool reverse_normals;
 
 void main()

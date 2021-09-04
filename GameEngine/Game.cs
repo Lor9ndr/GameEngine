@@ -109,7 +109,7 @@ namespace GameEngine
             #endregion
 
             #region Lights
-            _sun = LightFactory.GetDirectLight(new Vector3(0, 100, 0), new Vector3(0));
+            _sun = LightFactory.GetDirectLight(new Vector3(0.5555345f, 10.0f, 0.412412f), new Vector3(0.0f,0.0f,0.0f));
             Light sl = LightFactory.GetSpotLight(_camera.Position, _camera.Front);
             _lights.Add(sl);
             _lights.Add(_sun);
@@ -131,17 +131,17 @@ namespace GameEngine
             this.Size = new Vector2i(Width, Height);
             GL.Enable(EnableCap.FramebufferSrgb);
             base.OnLoad();
-            ToggleFullscreen();
+            //ToggleFullscreen();
         }
 
         protected override void OnRenderFrame(FrameEventArgs args)
         {
 
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            GL.Enable(EnableCap.DepthTest);
-            GL.PolygonOffset(1.1f, 4.0f);
             /*ImGui.NewFrame();*/
+            Logger.ClearError();
             _worldRenderer.Render(_camera, false);
+            Logger.CheckLastError();
 #if DEBUG
             _worldRenderer.SetupCamera(_camera, LightBoxShader);
             foreach (var item in _worldRenderer.Lights)
@@ -173,9 +173,12 @@ namespace GameEngine
             $" Shadows: {Shadows}" +
             $" Gamma : {GammaEnable}";
             _worldRenderer.Update();
-            foreach (var item in _lights.OfType<PointLight>())
+            foreach (var item in _lights.OfType<DirectLight>())
             {
-                item.Transform.Position = new Vector3((float)(10 * Math.Sin(Time)), item.Transform.Position.Y, (float)(10 * Math.Cos(Time)));
+                if ((bool)(KeyboardState.IsKeyDown(Keys.O)))
+                {
+                    item.Transform.Position = _camera.Position;
+                }
             }
             _worldRenderer.LightShader.Use();
             _worldRenderer.LightShader.SetInt("shadows", Shadows);

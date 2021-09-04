@@ -32,8 +32,8 @@ namespace GameEngine.GameObjects.Lights
             new Vector3(0.0f, -1.0f,  0.0f )
         };
 
-        public PointLight(Mesh mesh, LightData lightData, ShadowData shadowData, Transform transform)
-            : base(mesh, lightData, shadowData, transform)
+        public PointLight(Mesh mesh, LightData lightData, Transform transform)
+            : base(mesh, lightData,  transform)
         {
             _id++;
             PointLightID = _id;
@@ -68,7 +68,6 @@ namespace GameEngine.GameObjects.Lights
             GL.ActiveTexture(TextureUnit.Texture0 + textureIdx);
             ShadowData.Shadow.CubeMap.Bind();
             shader.SetInt(name + "shadow", textureIdx);
-            shader.SetFloat("far_plane", FarPlane);
             UpdateMatrices();
 
             if (drawMesh)
@@ -86,7 +85,8 @@ namespace GameEngine.GameObjects.Lights
         {
             for (int i = 0; i < LightSpaceMatrices.Length; i++)
             {
-                LightSpaceMatrices[i] =  Matrix4.LookAt(Transform.Position, Transform.Position + _directions[i], _ups[i]).Multiply(GetProjection);
+                Matrix4 view = Matrix4.LookAt(Transform.Position, Transform.Position + _directions[i], _ups[i]);
+                LightSpaceMatrices[i] =  Matrix4.LookAt(Transform.Position, Transform.Position + _directions[i], _ups[i]) * GetProjection;
             }
         }
 

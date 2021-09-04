@@ -3,6 +3,7 @@ using OpenTK.Mathematics;
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
+using PixelFormat = OpenTK.Graphics.OpenGL4.PixelFormat;
 
 namespace GameEngine
 {
@@ -73,8 +74,17 @@ namespace GameEngine
         }
 
         public virtual void Bind(TextureTarget type) => GL.BindTexture(type, Handle);
-        public virtual void SetTexParameters(Vector2i size, PixelInternalFormat format, PixelType type) => throw new NotImplementedException();
-
+        public virtual void SetTexParameters(Vector2i size, PixelInternalFormat format, PixelType type) 
+        {
+            Bind(TextureTarget.Texture2D);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, format, size.X, size.Y, 0, (PixelFormat)format, type, (IntPtr)null);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Nearest);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Nearest);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToBorder);
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToBorder);
+            float[] borderColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBorderColor, borderColor);
+        }
         public void Use(TextureUnit unit)
         {
             GL.ActiveTexture(unit);

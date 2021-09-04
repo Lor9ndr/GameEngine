@@ -22,8 +22,8 @@ namespace GameEngine.GameObjects.Lights
 
         public static new float FarPlane => 100.0f;
 
-        public SpotLight(LightData lightData, ShadowData shadowData, Transform transform , float cutOff = 0, float outerCutOff = 0, Mesh mesh= null) 
-            : base(mesh, lightData,shadowData, transform)
+        public SpotLight(LightData lightData, Transform transform , float cutOff = 0, float outerCutOff = 0, Mesh mesh= null) 
+            : base(mesh, lightData, transform)
         {
             CutOff = cutOff;
             OuterCutOff = outerCutOff;

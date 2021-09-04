@@ -14,14 +14,12 @@ namespace GameEngine.Bases.Components
 {
     public class ShadowData : IComponent
     {
-        private Matrix4 _projection;
         private FrameBuffer _shadow;
 
         public FrameBuffer Shadow { get => _shadow; set => _shadow = value; }
 
-        public ShadowData(Matrix4 projection)
+        public ShadowData()
         {
-            _projection = projection;
         }
         public void Render(Shader shader, Light light, int textureIdx)
         {
@@ -35,6 +33,9 @@ namespace GameEngine.Bases.Components
             }
             else if (type == typeof(DirectLight))
             {
+                GL.ActiveTexture(TextureUnit.Texture0 + textureIdx);
+                Shadow.Texture.Bind(TextureTarget.Texture2D);
+                shader.SetInt("dirLight.shadow", textureIdx);
 
             }
             else if (type == typeof(SpotLight))
@@ -42,6 +43,6 @@ namespace GameEngine.Bases.Components
 
             }
         }
-        public Matrix4 GetProjection() => _projection;
+
     }
 }

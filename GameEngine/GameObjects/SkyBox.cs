@@ -69,7 +69,7 @@ namespace GameEngine.GameObjects
         public SkyBox()
         {
             ResizeVerticesToSkybox();
-            _cubemapTexture = CubeMap.LoadCubeMapFromFile(faces,"skyBox");
+            _cubemapTexture = CubeMap.LoadCubeMapFromFile(faces,"skybox");
             List<Texture> _ = new List<Texture>() { _cubemapTexture };
             skyBoxMesh = new Mesh(skyboxVertices,textures: _ , setupLevel: Enums.SetupLevel.Position);
             

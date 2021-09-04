@@ -272,6 +272,10 @@ namespace GameEngine.GameObjects
                 int pos = GL.GetUniformLocation(Handle, name);
                 UniformLocations.Add(name, pos);
 
+                if (pos == -1)
+                {
+                    Console.WriteLine($"{name} Was not setted in {_path.Split('/').Where(s=>s.Contains('.')).ToList()[3]}");
+                }
                 return pos;
             }
         }
