@@ -1,10 +1,7 @@
-﻿using GameEngine.DefaultMeshes;
-using GameEngine.Extensions;
-using GameEngine.GameObjects;
+﻿using GameEngine.GameObjects;
 using GameEngine.GameObjects.Base;
 using GameEngine.GameObjects.Lights;
 using GameEngine.Intefaces;
-using GameEngine.RenderPrepearings.FrameBuffers;
 using OpenTK.ImGui;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
@@ -14,11 +11,8 @@ using OpenTK.Windowing.GraphicsLibraryFramework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using ImGuiNET;
 using GameEngine.Factories;
-using GameEngine.Bases;
 using GameEngine.Bases.Components;
 
 namespace GameEngine
@@ -112,13 +106,13 @@ namespace GameEngine
             _sun = LightFactory.GetDirectLight(new Vector3(0.5555345f, 10.0f, 0.412412f), new Vector3(0.0f,0.0f,0.0f));
             Light sl = LightFactory.GetSpotLight(_camera.Position, _camera.Front);
             _lights.Add(sl);
-            _lights.Add(_sun);
+            //_lights.Add(_sun);
 
-            for (int i = 0; i < 3; i++)
+          /*  for (int i = 0; i < 3; i++)
             {
                 var position = new Vector3(rd.Next(-50, 60), rd.Next(5, 50), rd.Next(-50, 50));
                 _lights.Add(LightFactory.GetPointLight(position));
-            }
+            }*/
             var ter = ModelFactory.GetTerrainModel(new Vector3(0));
             #endregion
 
@@ -165,21 +159,25 @@ namespace GameEngine
         protected override void OnUpdateFrame(FrameEventArgs args)
         {
             CalculateFPS();
+            var spotlight = _lights.OfType<SpotLight>().FirstOrDefault();
             Title =
                 $"FPS: {FPS}," +
             $" Objects: {_models.Count}," +
             $" Lights: {_lights.Count}, " +
             $" CAMERAPOS: {_camera.Position}" +
             $" Shadows: {Shadows}" +
-            $" Gamma : {GammaEnable}";
+            $" Gamma : {GammaEnable}" +
+            $"SpotLight: FRONT: {spotlight.Transform.Direction}, POS : {spotlight.Transform.Position}";
             _worldRenderer.Update();
-            foreach (var item in _lights.OfType<DirectLight>())
+            foreach (var item in _lights.OfType<SpotLight>())
             {
                 if ((bool)(KeyboardState.IsKeyDown(Keys.O)))
                 {
                     item.Transform.Position = _camera.Position;
+                    item.Transform.Direction = _camera.Front;
                 }
             }
+           
             _worldRenderer.LightShader.Use();
             _worldRenderer.LightShader.SetInt("shadows", Shadows);
             _worldRenderer.LightShader.SetInt("gammaEnable", GammaEnable);

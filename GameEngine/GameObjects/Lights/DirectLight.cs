@@ -38,7 +38,7 @@ namespace GameEngine.GameObjects.Lights
             shader.SetVector3(name + "diffuse", LightData.Diffuse);
             shader.SetVector3(name + "specular", LightData.Specular);
             shader.SetVector3(name + "lightColor", LightData.Color);
-            shader.SetMatrix4("lightSpaceMatrix", LightSpaceMatrix);
+            shader.SetMatrix4(name + "lightSpaceMatrix", LightSpaceMatrix);
             shader.SetFloat(name + "farPlane", FarPlane);
             GL.ActiveTexture(TextureUnit.Texture0 + textureIdx);
             ShadowData.Shadow.Texture.Bind(TextureTarget.Texture2D);

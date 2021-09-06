@@ -50,28 +50,26 @@ namespace GameEngine
         {
 
             SetupCamera(camera, DepthCubeShader);
+            GL.Disable(EnableCap.CullFace);
 
-            GL.Enable(EnableCap.CullFace);
-            GL.CullFace(CullFaceMode.Front);
-            GL.FrontFace(FrontFaceDirection.Ccw);
+            /* GL.Enable(EnableCap.CullFace);
+             GL.CullFace(CullFaceMode.Front);
+             GL.FrontFace(FrontFaceDirection.Ccw);*/
             // Render a shadow framebuffers
             foreach (var item in Lights.OfType<PointLight>())
             {
                 RenderPointLightShadows(item, camera);
             }
-            foreach (var item in Lights.OfType<DirectLight>())
+            foreach (var item in Lights.Where(s=>s.GetType() == typeof(DirectLight) || s.GetType() == typeof(SpotLight)))
             {
-                RenderDirectLightShadow(item, camera);
+                RenderDirectAndSpotLightShadow(item, camera);
             }
             // Render scene as normal
             DefaultFBO.Activate();
 
-            GL.Disable(EnableCap.CullFace);
 
             RenderShader(camera, LightShader);
         }
-
-       
 
         public void RenderLights(Camera camera, Shader shader, bool drawMesh = false, bool setupCamera = true)
         {
@@ -128,7 +126,7 @@ namespace GameEngine
             RenderObjects(camera, shader);
 
         }
-        private void RenderDirectLightShadow(DirectLight light, Camera camera)
+        private void RenderDirectAndSpotLightShadow(Light light, Camera camera)
         {
             light.ShadowData.Shadow.Activate();
             DepthDirectShader.Use();
@@ -137,6 +135,7 @@ namespace GameEngine
             RenderObjects(camera, DepthDirectShader);
             light.ShadowData.Shadow.Unbind();
         }
+       
         public void RenderPointLightShadows(PointLight light, Camera camera)
         {
             light.ShadowData.Shadow.Activate();

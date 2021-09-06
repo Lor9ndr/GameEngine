@@ -21,6 +21,13 @@ namespace GameEngine.Bases.Components
         public ShadowData()
         {
         }
+
+        /// <summary>
+        /// May be it will be usefull somehow
+        /// </summary>
+        /// <param name="shader"></param>
+        /// <param name="light"></param>
+        /// <param name="textureIdx"></param>
         public void Render(Shader shader, Light light, int textureIdx)
         {
             var type = light.GetType();

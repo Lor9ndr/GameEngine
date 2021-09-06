@@ -75,11 +75,6 @@ namespace GameEngine.GameObjects.Lights
                 DrawMesh(shader);
             }
         }
-
-        public void RenderShadowData(Shader shader, int textureIdx)
-        {
-            ShadowData.Render(shader, this, textureIdx);
-        }
         public override Matrix4 GetProjection => Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(90), Game.ShadowSize.X/Game.ShadowSize.Y, NearPlane, FarPlane);
         public override void UpdateMatrices()
         {
