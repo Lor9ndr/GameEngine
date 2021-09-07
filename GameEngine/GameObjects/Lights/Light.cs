@@ -52,11 +52,11 @@ namespace GameEngine.GameObjects.Lights
             Transform.Model = r1.Multiply(r2).Multiply(r3).Multiply(s).Multiply(t2);
             shader.SetMatrix4("model", Transform.Model);
         }
-        public virtual void Render(Shader shader,int textureidx = 0, bool drawMesh = false)
+        public virtual void Render(Shader shader,RenderFlags flags,int textureidx = 0)
         {
             shader.Use();
             SetupModel(shader);
-            if (drawMesh)
+            if (flags.HasFlag(RenderFlags.Mesh))
             {
                 DrawMesh(shader);
             }

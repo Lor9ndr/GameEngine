@@ -20,9 +20,9 @@ namespace GameEngine.GameObjects.Lights
         public float CutOff { get => MathF.Cos(MathHelper.DegreesToRadians(_cutOff)); set => _cutOff = value; }
         public float OuterCutOff { get => MathF.Cos(MathHelper.DegreesToRadians(outerCutOff)); set => outerCutOff = value; }
 
-        public static new float NearPlane = 1.0f;
+        public static new float NearPlane = 2.0f;
 
-        public static new float FarPlane = 100.0f;
+        public static new float FarPlane = 100f;
 
         private static int _spotLightId = 0;
         public int ID;
@@ -56,7 +56,7 @@ namespace GameEngine.GameObjects.Lights
         }
 
 
-        public override void Render(Shader shader, int textureIdx, bool drawMesh = false)
+        public override void Render(Shader shader, RenderFlags flags, int textureIdx)
         {
             string name = $"spotLights[{ID}].";
             shader.SetVector3(name + "position", Transform.Position);
@@ -70,7 +70,6 @@ namespace GameEngine.GameObjects.Lights
             shader.SetFloat(name + "quadratic", _quadratic);
             shader.SetFloat(name + "cutOff", CutOff);
             shader.SetFloat(name + "outerCutOff", OuterCutOff);
-            shader.SetFloat("far_plane", FarPlane);
             shader.SetFloat(name + "farPlane", FarPlane);
             shader.SetMatrix4(name + "lightSpaceMatrix", LightSpaceMatrix);
             GL.ActiveTexture(TextureUnit.Texture0 + textureIdx);
@@ -83,11 +82,8 @@ namespace GameEngine.GameObjects.Lights
         public override Matrix4 GetProjection => Matrix4.CreatePerspectiveFieldOfView(CutOff * 2.0f, 1.0f, NearPlane,FarPlane);
         public override void UpdateMatrices()
         {
-
-            // TODO: Strange Bag here  Matrix4.LookAt(Transform.Position, Transform.Position + Transform.Direction, Vector3.UnitY);
-            // Have to fix it!!
-            Matrix4 view = Matrix4.LookAt(Transform.Position, Transform.Direction, Vector3.UnitY);
-            LightSpaceMatrix =  view * Matrix4.CreatePerspectiveFieldOfView(CutOff * 2.0f, 1.0f, NearPlane, FarPlane);
+            Matrix4 view = Matrix4.LookAt(Transform.Position, Transform.Position + Transform.Direction, Vector3.UnitY);
+            LightSpaceMatrix =  view * GetProjection;
         }
     }
 }

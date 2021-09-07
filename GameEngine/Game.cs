@@ -14,6 +14,7 @@ using System.Linq;
 using ImGuiNET;
 using GameEngine.Factories;
 using GameEngine.Bases.Components;
+using GameEngine.Bases;
 
 namespace GameEngine
 {
@@ -106,7 +107,7 @@ namespace GameEngine
             _sun = LightFactory.GetDirectLight(new Vector3(0.5555345f, 10.0f, 0.412412f), new Vector3(0.0f,0.0f,0.0f));
             Light sl = LightFactory.GetSpotLight(_camera.Position, _camera.Front);
             _lights.Add(sl);
-            //_lights.Add(_sun);
+            _lights.Add(_sun);
 
           /*  for (int i = 0; i < 3; i++)
             {
@@ -120,8 +121,8 @@ namespace GameEngine
             _worldRenderer = new WorldRenderer(_models, _lights, this);
             _camera.Enable(this);
 
-            /*controller = new ImGuiController(this);
-            ImGui.StyleColorsClassic();*/
+            controller = new ImGuiController(this);
+            ImGui.StyleColorsClassic();
             this.Size = new Vector2i(Width, Height);
             GL.Enable(EnableCap.FramebufferSrgb);
             base.OnLoad();
@@ -130,12 +131,12 @@ namespace GameEngine
 
         protected override void OnRenderFrame(FrameEventArgs args)
         {
-
+            ImGui.NewFrame();
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            /*ImGui.NewFrame();*/
             Logger.ClearError();
-            _worldRenderer.Render(_camera, false);
+            _worldRenderer.Render(_camera,RenderFlags.None, RenderFlags.Textures | RenderFlags.Mesh);
             Logger.CheckLastError();
+
 #if DEBUG
             _worldRenderer.SetupCamera(_camera, LightBoxShader);
             foreach (var item in _worldRenderer.Lights)
@@ -149,9 +150,9 @@ namespace GameEngine
                 }
             }
 #endif
-            /*onDrawGUI();
+            onDrawGUI();
             controller.Render();
-            ImGui.EndFrame();*/
+            ImGui.EndFrame();
 
             SwapBuffers();
         }
@@ -403,6 +404,12 @@ namespace GameEngine
                         }
 
                         ImGui.TreePop();
+                    }
+                    if (ImGui.Begin("Near Far Plane"))
+                    {
+
+                        ImGui.DragFloat("Near", ref SpotLight.NearPlane);
+                        ImGui.DragFloat("Far", ref SpotLight.FarPlane);
                     }
 
                     ImGui.End();

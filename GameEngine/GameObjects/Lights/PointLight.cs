@@ -1,4 +1,5 @@
-﻿using GameEngine.Bases.Components;
+﻿using GameEngine.Bases;
+using GameEngine.Bases.Components;
 using GameEngine.Extensions;
 using GameEngine.RenderPrepearings.FrameBuffers.Base;
 using OpenTK.Graphics.OpenGL4;
@@ -49,7 +50,7 @@ namespace GameEngine.GameObjects.Lights
         public static new float NearPlane => 1.0f;
         public static new float FarPlane => 100.0f;
 
-        public override void Render(Shader shader,int textureIdx, bool drawMesh = false)
+        public override void Render(Shader shader, RenderFlags flags, int textureIdx)
         {
             shader.Use();
             SetupModel(shader);
@@ -69,8 +70,7 @@ namespace GameEngine.GameObjects.Lights
             ShadowData.Shadow.CubeMap.Bind();
             shader.SetInt(name + "shadow", textureIdx);
             UpdateMatrices();
-
-            if (drawMesh)
+            if (flags.HasFlag(RenderFlags.Mesh))
             {
                 DrawMesh(shader);
             }

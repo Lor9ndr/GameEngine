@@ -1,4 +1,5 @@
-﻿using GameEngine.Intefaces;
+﻿using GameEngine.Bases;
+using GameEngine.Intefaces;
 using GameEngine.Structs;
 using GameEngine.Textures;
 using OpenTK.Graphics.OpenGL4;
@@ -83,21 +84,21 @@ namespace GameEngine.GameObjects
                 skyboxVertices[i].Position *= 100000;
             }
         }
-        public void Render(Camera camera)
+        public void Render( Camera camera, RenderFlags flags)
         {
             GL.DepthFunc(DepthFunction.Lequal);
             _skyBoxShader.Use();
             var viewproj = camera.GetViewMatrix() * camera.GetProjectionMatrix();
             _skyBoxShader.SetMatrix4("VP", viewproj);
-            skyBoxMesh.Render(_skyBoxShader, TextureTarget.TextureCubeMap);
+            skyBoxMesh.Render(_skyBoxShader,flags, TextureTarget.TextureCubeMap);
             GL.DepthFunc(DepthFunction.Less);
         }
 
         public void Update() { }
 
-        public void Render(Camera camera, Shader shader) => Render(camera);
+        public void Render(Camera camera, RenderFlags flags, Shader shader) => Render(camera,flags);
 
-        public void Render(Shader shader) => throw new NotImplementedException();
+        public void Render(Shader shader,RenderFlags flags) => throw new NotImplementedException();
 
 
         public void Dispose()

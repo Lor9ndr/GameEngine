@@ -28,7 +28,7 @@ namespace GameEngine.GameObjects.Lights
 
         public static new float FarPlane => 100;
 
-        public override void Render(Shader shader, int textureIdx, bool drawMesh)
+        public override void Render(Shader shader,RenderFlags flags, int textureIdx)
         {
             Logger.ClearError();
             string name = "dirLight.";
@@ -45,7 +45,7 @@ namespace GameEngine.GameObjects.Lights
             shader.SetInt(name + "shadow", textureIdx);
             shader.SetFloat("far_plane", FarPlane);
             SetupModel(shader);
-            if (drawMesh)
+            if (flags.HasFlag(RenderFlags.Mesh))
             {
                 DrawMesh(shader);
             }

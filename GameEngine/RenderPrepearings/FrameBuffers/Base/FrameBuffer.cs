@@ -61,20 +61,16 @@ namespace GameEngine.RenderPrepearings.FrameBuffers.Base
             _cubeMap = new CubeMap();
             _cubeMap.SetTexParameters(Size, format, type);
             GL.FramebufferTexture(FramebufferTarget.Framebuffer, attachment, _cubeMap.Handle,0);
-            if (!CheckState())
-            {
-                throw new Exception();
-            }
+            CheckState();
+           
         }
         public void AttachTexture2DMap(FramebufferAttachment attachment, PixelInternalFormat format, PixelType type)
         {
             _texture = new Texture();
             _texture.SetTexParameters(Size, format, type);
             GL.FramebufferTexture2D(FramebufferTarget.Framebuffer, attachment,TextureTarget.Texture2D, _texture.Handle, 0);
-            if (!CheckState())
-            {
-                throw new Exception();
-            }
+           CheckState();
+           
         }
         public void DisableColorBuffer()
         {

@@ -20,21 +20,19 @@ namespace GameEngine.GameObjects
         private static readonly List<Texture> _loadedTextures = new();
         private readonly string directory;
         private readonly string _path;
-        private bool _reverseNormals = false;
 
         #region Constructor
-        public Model(string path, Transform transform, bool reverseNormals = false)
+        public Model(string path, Transform transform)
             :base(transform)
         {
             directory = path.Substring(0, path.LastIndexOf('/'));
             _path = path;
-            _reverseNormals = reverseNormals;
             LoadModel();
         }
         #endregion
 
         #region Public Methods
-        public void Render(Shader shader)
+        public void Render(Shader shader, RenderFlags flags)
         {
 
             shader.Use();
@@ -45,14 +43,13 @@ namespace GameEngine.GameObjects
             var s = Matrix4.CreateScale(Transform.Scale);
             Transform.Model = r1.Multiply(r2).Multiply(r3).Multiply(s).Multiply(t2);
             shader.SetMatrix4("model", Transform.Model);
-            if (_reverseNormals)
+            if (flags.HasFlag(RenderFlags.ReverseNormals))
             {
                 shader.SetInt("reverse_normals", 1);
             }
-           
             foreach (var item in _meshes)
             {
-                item.Render(shader);
+                item.Render(shader, flags);
             }
             shader.SetInt("reverse_normals", 0);
         }

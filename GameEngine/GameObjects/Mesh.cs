@@ -1,4 +1,5 @@
-﻿using GameEngine.Enums;
+﻿using GameEngine.Bases;
+using GameEngine.Enums;
 using GameEngine.GameObjects.Base;
 using GameEngine.RenderPrepearings;
 using GameEngine.Structs;
@@ -20,19 +21,24 @@ namespace GameEngine.GameObjects
             Textures = textures;
             Setup(setupLevel, vao);
         }
-        public void Render(Shader shader, TextureTarget target = TextureTarget.Texture2D)
+        public void Render(Shader shader, RenderFlags flags, TextureTarget target = TextureTarget.Texture2D)
         {
             shader.Use();
-            for (int i = 0; i < Textures?.Count; i++)
+            if (flags.HasFlag(RenderFlags.Textures))
             {
-                string name = Textures[i].Type;
-                shader.SetInt($"material.{name}", i);
-                shader.SetInt(name, i);
+                for (int i = 0; i < Textures?.Count; i++)
+                {
+                    string name = Textures[i].Type;
+                    shader.SetInt($"material.{name}", i);
+                    shader.SetInt(name, i);
 
-                Textures[i].Use(TextureUnit.Texture0 + i, target);
+                    Textures[i].Use(TextureUnit.Texture0 + i, target);
+                }
             }
-            base.Draw();
-
+            if (flags.HasFlag(RenderFlags.Mesh))
+            {
+                base.Draw();
+            }
         }
     }
 }
