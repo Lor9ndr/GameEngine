@@ -32,11 +32,8 @@ namespace GameEngine.GameObjects.Lights
         {
             Logger.ClearError();
             string name = "dirLight.";
-            shader.SetVector3(name + "position", Transform.Position);
-            shader.SetVector3(name + "direction", Transform.Direction);
-            shader.SetVector3(name + "ambient", LightData.Ambient);
-            shader.SetVector3(name + "diffuse", LightData.Diffuse);
-            shader.SetVector3(name + "specular", LightData.Specular);
+            Transform.Render(shader, name);
+            LightData.Render(shader, name);
             shader.SetVector3(name + "lightColor", LightData.Color);
             shader.SetMatrix4(name + "lightSpaceMatrix", LightSpaceMatrix);
             shader.SetFloat(name + "farPlane", FarPlane);

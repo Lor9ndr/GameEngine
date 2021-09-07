@@ -22,11 +22,11 @@ namespace GameEngine.Factories
         #region Default Data
         private static Texture _lightTexture = Texture.LoadFromFile("../../../Resources/Textures/blub.png", "diffuse", string.Empty);
         private static Mesh _cube => Cube.GetTexturedMesh(_lightTexture);
-        private static LightData _directData => new LightData(ambient: new Vector3(0.6f), diffuse: new Vector3(1f), color: new Vector3(1f), specular: new Vector3(0.7f));
-        private static LightData _pointData => new LightData(ambient: new Vector3(0.25f), diffuse: new Vector3(1f), color: new Vector3(1), specular: new Vector3(0.3f));
-        private static LightData _pointRandomColorData => new LightData(ambient: new Vector3(0.25f), diffuse: new Vector3(1f), color: new Vector3(_rd.NextFloat(0f, 1f), _rd.NextFloat(0f, 1f), _rd.NextFloat(0f, 1f)), specular: new Vector3(0.3f));
+        private static LightData _directData => new LightData(ambient: new Vector3(0.6f), diffuse: new Vector3(1f), color: new Vector3(1f), specular: new Vector3(0.7f), intensity:1.0f);
+        private static LightData _pointData => new LightData(ambient: new Vector3(0.25f), diffuse: new Vector3(1f), color: new Vector3(1), specular: new Vector3(0.3f),intensity: 1.0f);
+        private static LightData _pointRandomColorData => new LightData(ambient: new Vector3(0.25f), diffuse: new Vector3(1f), color: new Vector3(_rd.NextFloat(0f, 1f), _rd.NextFloat(0f, 1f), _rd.NextFloat(0f, 1f)), specular: new Vector3(0.3f), intensity: 1.0f);
 
-        private static readonly LightData _spotData = new LightData(diffuse: new Vector3(1), ambient: new Vector3(1), color: new Vector3(1f), specular: new Vector3(1.0f));
+        private static readonly LightData _spotData = new LightData(diffuse: new Vector3(1), ambient: new Vector3(1), color: new Vector3(1f), specular: new Vector3(1.0f), intensity: 50.0f);
         #endregion
 
         #region Getters

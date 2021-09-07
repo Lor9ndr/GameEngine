@@ -19,7 +19,7 @@ struct DirLight {
 	mat4 lightSpaceMatrix;
 	sampler2D shadow;
 	float farPlane;
-
+	float intensity;
 };
 
 struct PointLight {
@@ -35,6 +35,7 @@ struct PointLight {
 	vec3 specular;
 	samplerCube shadow;
 	float farPlane;
+	float intensity;
 };
 
 struct SpotLight{
@@ -55,13 +56,14 @@ struct SpotLight{
 	mat4 lightSpaceMatrix;
 	sampler2D shadow;
 	float farPlane;
+	float intensity;
 };
 
 
 #define NUM_SAMPLES 20
 #define NUM_SAMPLESF 20.0
 #define NR_POINT_LIGHTS 3
-#define NR_SPOT_LIGHTS 1
+#define NR_SPOT_LIGHTS 10
 uniform SpotLight spotLights[NR_SPOT_LIGHTS];
 uniform DirLight dirLight;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
@@ -110,10 +112,8 @@ void main()
 	vec3 viewDir = normalize(viewPos - fs_in.FragPos);
 	float gamma = 0.9;
 
-	vec4 diff = texture(material.texture_diffuse0, fs_in.TexCoords);
+	vec3 diffColor = texture(material.texture_diffuse0, fs_in.TexCoords).rgb;
 	vec3 specColor = texture(material.texture_specular0, fs_in.TexCoords).rgb;
-	vec3 diffColor =  diff.rgb;
-
 
 	// phase 1: directional lighting
 	//vec3 result = CalcDirLight(dirLight, norm, viewDir, diffColor, specColor);
@@ -126,15 +126,15 @@ void main()
 	for(int i = 0; i < NR_SPOT_LIGHTS; i++)
 		result += CalcSpotLight(spotLights[i], norm, fs_in.FragPos, viewDir,diffColor, specColor); 
 	
-	//float z = gl_FragCoord.z * 2.0 - 1.0; // transform to NDC [0, 1] => [-1, 1]
-	//float linearDepth = (2.0 * near * far) / (z * (far - near) - (far + near)); // take inverse of the projection matrix (perspective)
-	//float factor = (near + linearDepth) / (near - far); // convert back to [0, 1]
-	//
-	//result.rgb *= 1.0 -factor;
-	//if(gammaEnable)
-	//{
-	//	result = pow(result, vec3(1.0/gamma));
-	//}
+	float z = gl_FragCoord.z * 2.0 - 1.0; // transform to NDC [0, 1] => [-1, 1]
+	float linearDepth = (2.0 * near * far) / (z * (far - near) - (far + near)); // take inverse of the projection matrix (perspective)
+	float factor = (near + linearDepth) / (near - far); // convert back to [0, 1]
+	
+	result.rgb *= 1.0 -factor;
+	if(gammaEnable)
+	{
+		result = pow(result, vec3(1.0/gamma));
+	}
 	FragColor = vec4(result, 1.0);
 }
 
@@ -278,7 +278,6 @@ float ShadowDirectCalculation(DirLight light, vec3 normal, vec3 lightDir)
 
 vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir,vec3 diffColor, vec3 specColor)
 {
-
     // Ambient
     vec3 ambient = light.ambient * diffColor;
     
@@ -308,7 +307,7 @@ vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir,vec3
 	float shadow = shadows ? SpotLightShadowCalculation(light, normal, lightDir) : 0.0;
 		//float shadow = 0.0;
 
-	return (ambient + (1.0 - shadow)) * (diffuse + specular) * light.lightColor;
+	return (ambient + (1.0 - shadow)) * (diffuse + specular) * light.lightColor * light.intensity;
 }
 
 float SpotLightShadowCalculation(SpotLight light, vec3 normal, vec3 lightDir)

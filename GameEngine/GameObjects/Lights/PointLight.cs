@@ -55,16 +55,13 @@ namespace GameEngine.GameObjects.Lights
             shader.Use();
             SetupModel(shader);
             string name = $"pointLights[{PointLightID}].";
-            shader.SetVector3(name + "position", Transform.Position);
-            shader.SetVector3(name + "ambient", LightData.Ambient);
-            shader.SetVector3(name + "diffuse", LightData.Diffuse);
-            shader.SetVector3(name + "specular", LightData.Specular);
-            shader.SetVector3(name + "lightColor", LightData.Color);
+
+            Transform.Render(shader, name);
+            LightData.Render(shader, name);
             shader.SetFloat(name + "constant", 1.0f);
             shader.SetFloat(name + "linear", 0.0014f);
             shader.SetFloat(name + "quadratic", 0.000007f);
-            shader.SetVector3("lightColor", LightData.Color);
-            shader.SetVector3("lightPos", Transform.Position);
+
             shader.SetFloat(name + "farPlane", FarPlane);
             GL.ActiveTexture(TextureUnit.Texture0 + textureIdx);
             ShadowData.Shadow.CubeMap.Bind();

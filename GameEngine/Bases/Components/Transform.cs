@@ -1,4 +1,5 @@
-﻿using OpenTK.Mathematics;
+﻿using GameEngine.GameObjects;
+using OpenTK.Mathematics;
 
 namespace GameEngine.Bases.Components
 {
@@ -31,6 +32,11 @@ namespace GameEngine.Bases.Components
             Velocity = 0;
             Rotation = new Vector3(0);
             Model = Matrix4.Zero;
+        }
+        public void Render(Shader shader, string name)
+        {
+            shader.SetVector3(name + "position", Position);
+            shader.SetVector3(name + "direction", Direction);
         }
     }
 }

@@ -36,7 +36,7 @@ namespace GameEngine
         public static double Time => _time;
         public static int Width = 1920;
         public static int Height = 1080;
-        public static Vector2i ShadowSize = new Vector2i(1024, 1024);
+        public static Vector2i ShadowSize = new Vector2i(2048, 2048);
         public KeyboardState Keyboard { get; private set; }
         #endregion
 
@@ -92,6 +92,7 @@ namespace GameEngine
             //SimpleShader = new Shader(SIMPLE_SHADER + ".vs", SIMPLE_SHADER + ".fr");
             LightBoxShader = new Shader(DEFERRED_RENDER_PATH + "LightBoxV.glsl", DEFERRED_RENDER_PATH + "LightBoxfr.glsl");
             Random rd = new();
+
             #region Models
             _models.Add(ModelFactory.GetManModel(new Vector3(0)));
             for (int i = 0; i < 15; i++)
@@ -109,11 +110,12 @@ namespace GameEngine
             _lights.Add(sl);
             _lights.Add(_sun);
 
-          /*  for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 9; i++)
             {
-                var position = new Vector3(rd.Next(-50, 60), rd.Next(5, 50), rd.Next(-50, 50));
-                _lights.Add(LightFactory.GetPointLight(position));
-            }*/
+                var position = new Vector3(rd.Next(-5, 6), rd.Next(0, 10), rd.Next(-5, 5));
+                var direction = new Vector3(rd.Next(-100,100), rd.Next(-100,100), rd.Next(-100, 100));
+                _lights.Add(LightFactory.GetSpotLight(position, direction));
+            }
             var ter = ModelFactory.GetTerrainModel(new Vector3(0));
             #endregion
 
@@ -170,15 +172,12 @@ namespace GameEngine
             $" Gamma : {GammaEnable}" +
             $"SpotLight: FRONT: {spotlight.Transform.Direction}, POS : {spotlight.Transform.Position}";
             _worldRenderer.Update();
-            foreach (var item in _lights.OfType<SpotLight>())
+            if ((bool)(KeyboardState.IsKeyDown(Keys.O)))
             {
-                if ((bool)(KeyboardState.IsKeyDown(Keys.O)))
-                {
-                    item.Transform.Position = _camera.Position;
-                    item.Transform.Direction = _camera.Front;
-                }
+                _lights.OfType<SpotLight>().FirstOrDefault().Transform.Position = _camera.Position;
+                _lights.OfType<SpotLight>().FirstOrDefault().Transform.Direction = _camera.Front;
             }
-           
+
             _worldRenderer.LightShader.Use();
             _worldRenderer.LightShader.SetInt("shadows", Shadows);
             _worldRenderer.LightShader.SetInt("gammaEnable", GammaEnable);
@@ -246,10 +245,20 @@ namespace GameEngine
             }
             if (Keyboard.IsKeyDown(Keys.Up))
             {
-                foreach (var item in _lights.OfType<PointLight>())
+                foreach (var item in _lights.OfType<SpotLight>())
                 {
-                    item.GetComponent<Transform>().Position += new Vector3(0, 0.1f, 0);
+                    item.LightData.Intensity += 1.0f;
                 }
+
+            }
+            if (Keyboard.IsKeyDown(Keys.Down))
+            {
+                foreach (var item in _lights.OfType<SpotLight>())
+                {
+                    item.LightData.Intensity -= 1.0f;
+
+                }
+                Console.WriteLine(_lights.OfType<SpotLight>().First().LightData.Intensity);
 
             }
             if (Keyboard.IsKeyDown(Keys.X))
@@ -258,15 +267,7 @@ namespace GameEngine
             }
             Shadows = Keyboard.IsKeyDown(Keys.B) ? 0 : 1;
             GammaEnable = Keyboard.IsKeyDown(Keys.G) ? 0 : 1;
-            if (Keyboard.IsKeyDown(Keys.Down))
-            {
-                foreach (var item in _lights.OfType<PointLight>())
-                {
-                    item.Transform.Position -= new Vector3(0, 0.1f, 0);
-                }
-
-
-            }
+           
             if (Keyboard.IsKeyDown(Keys.Left))
             {
                 foreach (var item in _lights.OfType<PointLight>())
