@@ -36,6 +36,7 @@ namespace GameEngine
                 _vao.Setup(_vertices);
             }
             _vbo.Setup(_vertices);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, _vbo.Vbo);
 
             if (_indices != null)
             {
@@ -45,6 +46,7 @@ namespace GameEngine
             SetupALevel();
 
             GL.VertexArrayVertexBuffer(GetVAO(), 0, GetVBO(), (IntPtr)null, Vertex.Size);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
             GL.BindVertexArray(0);
         }
         private void SetupALevel()
@@ -80,9 +82,14 @@ namespace GameEngine
                 }
             }
         }
+        public int? IndicesCount => _indices?.Length;
+        public int VerticesCount => _vertices.Length;
+        public bool HasIndices() => _indices != null && _indices.Length > 0;
         public int GetVAO() => _vao.Vao;
         public VAO GetVAOClass() => _vao;
         public int GetVBO() => _vbo.Vbo;
         public int GetEBO() => _ebo.Ebo;
+        public Vertex[] GetVertices => _vertices;
+        public int[] GetIndices => _indices;
     }
 }

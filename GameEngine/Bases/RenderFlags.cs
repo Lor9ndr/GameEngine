@@ -11,6 +11,7 @@ namespace GameEngine.Bases
         None = 0,
         Mesh = 1,
         Textures = 2,
-        ReverseNormals = 4
+        ReverseNormals = 4,
+        MeshAndTextures = Mesh | Textures
     }
 }

@@ -9,15 +9,9 @@ namespace GameEngine.GameObjects.Base
     public abstract class AGameObject : IDisposable
     {
         public ObjectSetupper ObjectSetupper;
-        internal Vertex[] Vertices;
-        internal int[] Indices;
-        public int VerticesCount;
         public AGameObject(Vertex[] vertices, int[] indices = null)
         {
-            Vertices = vertices;
-            Indices = indices;
-            VerticesCount = vertices.Length;
-            ObjectSetupper = new ObjectSetupper(Vertices, indices);
+            ObjectSetupper = new ObjectSetupper(vertices, indices);
 
         }
         protected virtual void Setup(SetupLevel levels, VAO vao = default)
@@ -29,8 +23,9 @@ namespace GameEngine.GameObjects.Base
         public virtual void Draw(PrimitiveType type)
         {
             GL.BindVertexArray(ObjectSetupper.GetVAO());
-            GL.DrawArrays(type, 0, VerticesCount);
+            GL.DrawArrays(type, 0, ObjectSetupper.VerticesCount);
             GL.BindVertexArray(0);
+
         }
         public virtual void Draw(Camera camera) => Draw();
 

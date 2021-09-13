@@ -43,12 +43,12 @@ namespace GameEngine.GameObjects.Lights
             ShadowData.Shadow.Bind();
             ShadowData.Shadow.DisableColorBuffer();
             ShadowData.Shadow.AttachCubeMap(FramebufferAttachment.DepthAttachment, PixelInternalFormat.DepthComponent, PixelType.Float);
+            FarPlane = 100.0f;
+            NearPlane = 1.0f;
             UpdateMatrices();
 
         }
 
-        public static new float NearPlane => 1.0f;
-        public static new float FarPlane => 100.0f;
 
         public override void Render(Shader shader, RenderFlags flags, int textureIdx)
         {
@@ -60,11 +60,10 @@ namespace GameEngine.GameObjects.Lights
             LightData.Render(shader, name);
             shader.SetFloat(name + "constant", 1.0f);
             shader.SetFloat(name + "linear", 0.0014f);
-            shader.SetFloat(name + "quadratic", 0.000007f);
+            shader.SetFloat(name + "quadratic", 0.07f);
 
             shader.SetFloat(name + "farPlane", FarPlane);
-            GL.ActiveTexture(TextureUnit.Texture0 + textureIdx);
-            ShadowData.Shadow.CubeMap.Bind();
+            ShadowData.Shadow.CubeMap.Use(TextureUnit.Texture0 + textureIdx, TextureTarget.TextureCubeMap);
             shader.SetInt(name + "shadow", textureIdx);
             UpdateMatrices();
             if (flags.HasFlag(RenderFlags.Mesh))
@@ -72,13 +71,13 @@ namespace GameEngine.GameObjects.Lights
                 DrawMesh(shader);
             }
         }
-        public override Matrix4 GetProjection => Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(90), Game.ShadowSize.X/Game.ShadowSize.Y, NearPlane, FarPlane);
+        public override Matrix4 GetProjection => Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(90), 1.0f, NearPlane, FarPlane);
         public override void UpdateMatrices()
         {
             for (int i = 0; i < LightSpaceMatrices.Length; i++)
             {
                 Matrix4 view = Matrix4.LookAt(Transform.Position, Transform.Position + _directions[i], _ups[i]);
-                LightSpaceMatrices[i] =  Matrix4.LookAt(Transform.Position, Transform.Position + _directions[i], _ups[i]) * GetProjection;
+                LightSpaceMatrices[i] = view * GetProjection;
             }
         }
 

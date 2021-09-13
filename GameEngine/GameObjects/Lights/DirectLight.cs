@@ -22,11 +22,11 @@ namespace GameEngine.GameObjects.Lights
             ShadowData.Shadow.Bind();
             ShadowData.Shadow.DisableColorBuffer();
             ShadowData.Shadow.AttachTexture2DMap(FramebufferAttachment.DepthAttachment, PixelInternalFormat.DepthComponent, PixelType.Float);
+            FarPlane = 100.0f;
+            NearPlane = 1.0f;
             UpdateMatrices();
-        }
-        public static new float NearPlane => 1.0f;
 
-        public static new float FarPlane => 100;
+        }
 
         public override void Render(Shader shader,RenderFlags flags, int textureIdx)
         {
@@ -48,7 +48,7 @@ namespace GameEngine.GameObjects.Lights
             }
             UpdateMatrices();
         }
-        public override Matrix4 GetProjection => Matrix4.CreateOrthographicOffCenter(-500, 500, -500, 500, NearPlane, FarPlane);
+        public override Matrix4 GetProjection => Matrix4.CreatePerspectiveFieldOfView(MathHelper.DegreesToRadians(179.0f),1.0f, NearPlane, FarPlane);
         public override void UpdateMatrices()
         {
 

@@ -39,6 +39,7 @@ namespace GameEngine.GameObjects
             {
                 base.Draw();
             }
+
         }
     }
 }

@@ -11,7 +11,6 @@ namespace GameEngine.RenderPrepearings
         {
             Vao = GL.GenVertexArray();
             GL.BindVertexArray(Vao);
-            GL.BindBuffer(BufferTarget.ArrayBuffer, Vao);
         }
     }
 }

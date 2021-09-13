@@ -19,10 +19,12 @@ namespace GameEngine.GameObjects.Lights
         private LightData _lightData;
         private ShadowData _shadowData;
         private Mesh _mesh;
+        public float NearPlane { get => _nearPlane; set => _nearPlane = value; }
 
-        public static float NearPlane => 1.0f;
+        public float FarPlane { get => _farPlane; set => _farPlane = value; }
 
-        public static float FarPlane => 100.0f;
+        private float _farPlane;
+        private float _nearPlane;
 
         private Matrix4 _lightSpaceMatrix;
 
@@ -52,7 +54,7 @@ namespace GameEngine.GameObjects.Lights
             Transform.Model = r1.Multiply(r2).Multiply(r3).Multiply(s).Multiply(t2);
             shader.SetMatrix4("model", Transform.Model);
         }
-        public virtual void Render(Shader shader,RenderFlags flags,int textureidx = 0)
+        public virtual void Render(Shader shader, RenderFlags flags, int textureidx = 0)
         {
             shader.Use();
             SetupModel(shader);

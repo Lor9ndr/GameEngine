@@ -26,9 +26,9 @@ namespace GameEngine.Textures
             Bind();
             for (int i = 0; i < 6; i++)
             {
-              
+
                 GL.TexImage2D(TextureTarget.TextureCubeMapPositiveX + i,
-                    0,format,size.X,size.Y,0, (PixelFormat)format,type,(IntPtr)null);
+                    0, format, size.X, size.Y, 0, (PixelFormat)format, type, (IntPtr)null);
             }
 
             GL.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);

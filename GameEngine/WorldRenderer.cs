@@ -5,6 +5,7 @@ using GameEngine.GameObjects.Lights;
 using GameEngine.Intefaces;
 using GameEngine.RenderPrepearings.FrameBuffers.Base;
 using OpenTK.Graphics.OpenGL4;
+using OpenTK.ImGui;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Desktop;
 using System;
@@ -36,7 +37,7 @@ namespace GameEngine
             GameObjects = gameObjects;
             Lights = aLights;
             SkyBox = new SkyBox();
-            DefaultFBO = new FrameBuffer(new Vector2i(Game.Width, Game.Height), ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit | ClearBufferMask.StencilBufferBit);
+            DefaultFBO = new FrameBuffer(new Vector2i(Game.Width, Game.Height), ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             DefaultFBO.Bind();
             window.Resize += Window_Resize;
         }
@@ -49,30 +50,37 @@ namespace GameEngine
 
         public void Render(Camera camera, RenderFlags lightFlags, RenderFlags objFlags)
         {
+            var plcounter = Lights.Count(s => s.GetType() == typeof(PointLight));
+            LightShader.SetInt("nrSpotLights", Lights.Count(s=> s.GetType()== typeof(SpotLight)));
+            LightShader.SetInt("nrPointLights", plcounter);
 
-            SetupCamera(camera, DepthCubeShader);
 
             GL.Enable(EnableCap.CullFace);
             GL.Enable(EnableCap.DepthTest);
             GL.CullFace(CullFaceMode.Front);
-            GL.FrontFace(FrontFaceDirection.Ccw);
             // Render a shadow framebuffers
+            SetupCamera(camera, DepthDirectShader);
+            // Render SpotLight and DirectLight shadows
+            foreach (var item in Lights.OfType<DirectLight>())
+            {
+                RenderDirectAndSpotLightShadow(item, camera);
+            }
+            foreach (var item in Lights.OfType<SpotLight>())
+            {
+                RenderDirectAndSpotLightShadow(item, camera);
+            }
+            SetupCamera(camera, DepthCubeShader);
             // Render PointLight shadows
             foreach (var item in Lights.OfType<PointLight>())
             {
                 RenderPointLightShadows(item, camera);
             }
-            // Render SpotLight and DirectLight shadows
-            foreach (var item in Lights.Where(s=>s.GetType() == typeof(DirectLight) || s.GetType() == typeof(SpotLight)))
-            {
-                RenderDirectAndSpotLightShadow(item, camera);
-            }
+
             // Render scene as normal
-            GL.Disable(EnableCap.CullFace);
             DefaultFBO.Activate();
-
-
+            GL.Disable(EnableCap.CullFace);
             RenderShader(camera, LightShader, lightFlags, objFlags);
+
         }
 
         public void RenderLights(Camera camera, Shader shader, RenderFlags flags, bool setupCamera = true)
@@ -97,37 +105,19 @@ namespace GameEngine
                 item.Render(shader, objFlags);
             }
         }
-       
-        public void Update()
-        {
-            foreach (var item in GameObjects)
-            {
-                item.Update();
-            }
-            foreach (var item in Lights)
-            {
-                item.Update();
-            }
-        }
-
-        public void SetupCamera(Camera camera, Shader shader)
-        {
-            shader.Use();
-            shader.SetMatrix4("VP", camera.GetViewMatrix() * camera.GetProjectionMatrix());
-            shader.SetVector3("viewPos", camera.Position);
-        }
-
+      
         public void RenderShader(Camera camera, Shader shader, RenderFlags lightFlags, RenderFlags objFlags)
         {
 
             SkyBox.Render(camera, objFlags);
             shader.Use();
-
             SetupCamera(camera,shader);
 
             RenderLights(camera,  shader, lightFlags);
 
             RenderObjects(camera, shader, objFlags);
+
+
 
         }
         private void RenderDirectAndSpotLightShadow(Light light, Camera camera)
@@ -151,11 +141,30 @@ namespace GameEngine
                 DepthCubeShader.SetMatrix4($"shadowMatrices[{i}]", light.LightSpaceMatrices[i]);
             }
             DepthCubeShader.SetVector3("lightPos", light.Transform.Position);
-            DepthCubeShader.SetFloat("far_plane", PointLight.FarPlane);
+            DepthCubeShader.SetFloat("far_plane", light.FarPlane);
             DepthCubeShader.SetMatrix4("model", light.Transform.Model);
 
             RenderObjects(camera, DepthCubeShader, RenderFlags.Mesh);
             light.ShadowData.Shadow.Unbind();
         }
+        public void Update()
+        {
+            foreach (var item in GameObjects)
+            {
+                item.Update();
+            }
+            foreach (var item in Lights)
+            {
+                item.Update();
+            }
+        }
+
+        public void SetupCamera(Camera camera, Shader shader)
+        {
+            shader.Use();
+            shader.SetMatrix4("VP", camera.GetViewMatrix() * camera.GetProjectionMatrix());
+            shader.SetVector3("viewPos", camera.Position);
+        }
+
     }
 }

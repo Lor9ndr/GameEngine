@@ -60,7 +60,7 @@ namespace GameEngine.RenderPrepearings.FrameBuffers.Base
         {
             _cubeMap = new CubeMap();
             _cubeMap.SetTexParameters(Size, format, type);
-            GL.FramebufferTexture(FramebufferTarget.Framebuffer, attachment, _cubeMap.Handle,0);
+            GL.FramebufferTexture(FramebufferTarget.Framebuffer, attachment, _cubeMap.Handle, 0);
             CheckState();
            
         }

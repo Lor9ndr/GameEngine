@@ -24,6 +24,6 @@ namespace GameEngine.DefaultMeshes
         };
         private static readonly Mesh _quad = new Mesh(_quadVertices, _quadIndices);
 
-        public static Mesh GetQuad() => new(_quad.Vertices, _quad.Indices, vao: _quad.ObjectSetupper.GetVAOClass());
+        public static Mesh GetQuad() => new(_quad.ObjectSetupper.GetVertices, _quad.ObjectSetupper.GetIndices, vao: _quad.ObjectSetupper.GetVAOClass());
     }
 }

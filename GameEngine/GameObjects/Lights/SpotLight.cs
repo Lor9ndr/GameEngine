@@ -19,9 +19,6 @@ namespace GameEngine.GameObjects.Lights
         public float CutOff { get => MathF.Cos(MathHelper.DegreesToRadians(_cutOff)); set => _cutOff = value; }
         public float OuterCutOff { get => MathF.Cos(MathHelper.DegreesToRadians(outerCutOff)); set => outerCutOff = value; }
 
-        public static new float NearPlane = 1.0f;
-
-        public static new float FarPlane = 1000.0f;
         public int ID;
 
         private static int _spotLightId = 0;
@@ -51,6 +48,8 @@ namespace GameEngine.GameObjects.Lights
             ShadowData.Shadow.Bind();
             ShadowData.Shadow.DisableColorBuffer();
             ShadowData.Shadow.AttachTexture2DMap(FramebufferAttachment.DepthAttachment, PixelInternalFormat.DepthComponent, PixelType.Float);
+            FarPlane = 100.0f;
+            NearPlane = 1.0f;
             UpdateMatrices();
             ID = _spotLightId;
             _spotLightId++;
@@ -83,7 +82,7 @@ namespace GameEngine.GameObjects.Lights
         public override Matrix4 GetProjection => Matrix4.CreatePerspectiveFieldOfView(CutOff * 2.0f, 1.0f, NearPlane, FarPlane);
         public override void UpdateMatrices()
         {
-            Matrix4 view = Matrix4.LookAt(Transform.Position, (Transform.Position + Transform.Direction*FarPlane) , Vector3.UnitY);
+            Matrix4 view = Matrix4.LookAt(Transform.Position, Transform.Position + Transform.Direction * FarPlane, Vector3.UnitY);
             LightSpaceMatrix = view * GetProjection;
         }
     }

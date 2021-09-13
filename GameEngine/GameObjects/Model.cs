@@ -34,7 +34,6 @@ namespace GameEngine.GameObjects
         #region Public Methods
         public void Render(Shader shader, RenderFlags flags)
         {
-
             shader.Use();
             var t2 = Matrix4.CreateTranslation(Transform.Position);
             var r1 = Matrix4.CreateRotationX(Transform.Rotation.X);
@@ -52,9 +51,10 @@ namespace GameEngine.GameObjects
                 item.Render(shader, flags);
             }
             shader.SetInt("reverse_normals", 0);
+
         }
 
-       
+
         #endregion
 
         #region Private Methods
@@ -164,7 +164,7 @@ namespace GameEngine.GameObjects
             {
                 foreach (var item in m._meshes)
                 {
-                    _meshes.Add(new Mesh(item.Vertices, item.Indices, item.Textures, item.ObjectSetupper.GetVAOClass()));
+                    _meshes.Add(new Mesh(item.ObjectSetupper.GetVertices, item.ObjectSetupper.GetIndices, item.Textures, item.ObjectSetupper.GetVAOClass()));
                 }
             }
             else
@@ -194,13 +194,5 @@ namespace GameEngine.GameObjects
             }
         }
         #endregion
-        public void Dispose()
-        {
-            foreach (var item in _meshes)
-            {
-                item.Dispose();
-            }
-        }
-
     }
 }

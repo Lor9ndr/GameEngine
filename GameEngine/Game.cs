@@ -57,7 +57,8 @@ namespace GameEngine
         internal static int Shadows = 1;
         internal static int GammaEnable = 1;
         private bool enabled;
-        private ImGuiController controller;
+        public static ImGuiController Controller;
+        private bool isGuiVisible = false;
         #endregion
 
         #region Const
@@ -101,30 +102,35 @@ namespace GameEngine
                 _models.Add(ModelFactory.GetNanoSuitModel(pos));
 
             }
+            _models.Add(ModelFactory.GetTerrainModel(new Vector3(0)));
 
             #endregion
 
             #region Lights
             _sun = LightFactory.GetDirectLight(new Vector3(0.5555345f, 10.0f, 0.412412f), new Vector3(0.0f,0.0f,0.0f));
-            Light sl = LightFactory.GetSpotLight(_camera.Position, _camera.Front);
-            _lights.Add(sl);
+            //Light sl = LightFactory.GetSpotLight(_camera.Position, _camera.Front);
+            //_lights.Add(sl);
             _lights.Add(_sun);
 
-            for (int i = 0; i < 9; i++)
+            for (int i = 0; i < 10; i++)
             {
                 var position = new Vector3(rd.Next(-5, 6), rd.Next(0, 10), rd.Next(-5, 5));
                 var direction = new Vector3(rd.Next(-100,100), rd.Next(-100,100), rd.Next(-100, 100));
                 _lights.Add(LightFactory.GetSpotLight(position, direction));
             }
-            var ter = ModelFactory.GetTerrainModel(new Vector3(0));
+
+           for (int i = 0; i < 5; i++)
+           {
+               var position = new Vector3(rd.Next(-5, 6), rd.Next(0, 10), rd.Next(-5, 5));
+               _lights.Add(LightFactory.GetPointLight(position));
+           }
             #endregion
 
-            _models.Add(ter);
             _worldRenderer = new WorldRenderer(_models, _lights, this);
             _camera.Enable(this);
 
-            controller = new ImGuiController(this);
-            ImGui.StyleColorsClassic();
+            Controller = new ImGuiController(this);
+            ImGui.StyleColorsDark();
             this.Size = new Vector2i(Width, Height);
             GL.Enable(EnableCap.FramebufferSrgb);
             base.OnLoad();
@@ -133,13 +139,11 @@ namespace GameEngine
 
         protected override void OnRenderFrame(FrameEventArgs args)
         {
-            ImGui.NewFrame();
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            Logger.ClearError();
-            _worldRenderer.Render(_camera,RenderFlags.None, RenderFlags.Textures | RenderFlags.Mesh);
-            Logger.CheckLastError();
-
+            _worldRenderer.Render(_camera,RenderFlags.None, RenderFlags.MeshAndTextures);
+            
 #if DEBUG
+            LightBoxShader.Use();
             _worldRenderer.SetupCamera(_camera, LightBoxShader);
             foreach (var item in _worldRenderer.Lights)
             {
@@ -153,8 +157,10 @@ namespace GameEngine
             }
 #endif
             onDrawGUI();
-            controller.Render();
-            ImGui.EndFrame();
+            if (isGuiVisible)
+            {
+                Controller.Render();
+            }
 
             SwapBuffers();
         }
@@ -169,8 +175,7 @@ namespace GameEngine
             $" Lights: {_lights.Count}, " +
             $" CAMERAPOS: {_camera.Position}" +
             $" Shadows: {Shadows}" +
-            $" Gamma : {GammaEnable}" +
-            $"SpotLight: FRONT: {spotlight.Transform.Direction}, POS : {spotlight.Transform.Position}";
+            $" Gamma : {GammaEnable}";
             _worldRenderer.Update();
             if ((bool)(KeyboardState.IsKeyDown(Keys.O)))
             {
@@ -182,7 +187,7 @@ namespace GameEngine
             _worldRenderer.LightShader.SetInt("shadows", Shadows);
             _worldRenderer.LightShader.SetInt("gammaEnable", GammaEnable);
 
-            //controller.Update(this, _deltaTime);
+            Controller.Update(this, _deltaTime);
             _time += args.Time;
             _deltaTime = (float)_time - (float)oldTimeSinceStart;
             HandleKeyBoard();
@@ -194,16 +199,22 @@ namespace GameEngine
         {
             // Update the opengl viewport
             GL.Viewport(0, 0, e.Width, e.Height);
-            Game.Width = Size.X;
-            Game.Height = Size.Y;
+            Width = Size.X;
+            Height = Size.Y;
 
             // Tell ImGui of the new size
-            //controller.WindowResized(e.Width, e.Height);
+            Controller.WindowResized(e.Width, e.Height);
             base.OnResize(e);
         }
-        protected override void OnUnload()
+        protected override void OnTextInput(TextInputEventArgs e)
         {
-            base.OnUnload();
+            base.OnTextInput(e);
+            Controller.PressChar((char)e.Unicode);
+        }
+        protected override void OnMouseWheel(MouseWheelEventArgs e)
+        {
+            base.OnMouseWheel(e);
+            Controller.MouseScroll(e.Offset);
         }
         #endregion
 
@@ -249,16 +260,13 @@ namespace GameEngine
                 {
                     item.LightData.Intensity += 1.0f;
                 }
-
             }
             if (Keyboard.IsKeyDown(Keys.Down))
             {
                 foreach (var item in _lights.OfType<SpotLight>())
                 {
                     item.LightData.Intensity -= 1.0f;
-
                 }
-                Console.WriteLine(_lights.OfType<SpotLight>().First().LightData.Intensity);
 
             }
             if (Keyboard.IsKeyDown(Keys.X))
@@ -295,7 +303,9 @@ namespace GameEngine
                 CursorGrabbed = true;
                 _camera.CanMove = CursorGrabbed;
                 CursorVisible = false;
+                MousePosition = new Vector2(Game.Width /2, Game.Height/2);
             }
+            isGuiVisible = CursorVisible;
             
            
 
@@ -347,8 +357,7 @@ namespace GameEngine
 
                 ImGui.EndMainMenuBar();
             }
-
-            if (ImGui.Begin("Objects"))
+            if (ImGui.Begin("GameObjects"))
             {
                 if (ImGui.TreeNode("Objects"))
                 {
@@ -369,16 +378,11 @@ namespace GameEngine
 
                         ImGui.PopID();
                     }
-
-                    ImGui.TreePop();
-                }
-                if (ImGui.Begin("Lights"))
-                {
                     if (ImGui.TreeNode("Lights"))
                     {
                         foreach (var obj in _worldRenderer.Lights)
                         {
-                            var item = obj as Light;
+                            var item = obj; 
                             ImGui.PushID(obj.GetType().ToString() + _worldRenderer.Lights.IndexOf(obj));
                             if (ImGui.TreeNode(item.GetType().ToString()))
                             {
@@ -388,17 +392,18 @@ namespace GameEngine
                                 ImGui.DragFloat3("Position", ref v, 0.1f);
                                 item.Transform.Position = new Vector3(v.X, v.Y, v.Z);
 
-                               /* Vector3 amb = item.Ambient;
-                                System.Numerics.Vector3 am = new System.Numerics.Vector3(amb.X, amb.Y, amb.Z);
-                                ImGui.DragFloat3("Ambient", ref am, 0.1f);
-                                item.Ambient = new Vector3(am.X, am.Y, am.Z);
+                                ImGui.Text("Intensity");
+                                float intens = item.LightData.Intensity;
+                                ImGui.DragFloat("Intensity", ref intens);
+                                item.LightData.Intensity = intens;
 
-                                Vector3 specular = item.Specular;
-                                System.Numerics.Vector3 spec = new System.Numerics.Vector3(specular.X, specular.Y, specular.Z);
-                                ImGui.DragFloat3("Ambient", ref spec, 0.1f);
+                                var near = item.NearPlane;
+                                var far = item.FarPlane;
 
-                                item.Specular = new Vector3(spec.X, spec.Y, spec.Z);
-                                ImGui.TreePop();*/
+                                ImGui.DragFloat("Near", ref near, 1.0f, 1.0f, 100.0f);
+                                ImGui.DragFloat("Far", ref far, 1.0f, 1.0f, 9999.0f);
+                                item.NearPlane = near;
+                                item.FarPlane = far;
                             }
 
                             ImGui.PopID();
@@ -406,16 +411,9 @@ namespace GameEngine
 
                         ImGui.TreePop();
                     }
-                    if (ImGui.Begin("Near Far Plane"))
-                    {
-
-                        ImGui.DragFloat("Near", ref SpotLight.NearPlane);
-                        ImGui.DragFloat("Far", ref SpotLight.FarPlane);
-                    }
-
-                    ImGui.End();
                 }
             }
+            ImGui.End();
 
             #endregion
         }

@@ -12,9 +12,9 @@ out VS_OUT {
     vec2 TexCoords;
 } vs_out;
 
+
 uniform mat4 VP;
 uniform mat4 model;
-uniform highp mat4 lightSpaceMatrix;
 uniform bool reverse_normals;
 
 void main()
