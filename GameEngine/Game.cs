@@ -2,19 +2,21 @@
 using GameEngine.GameObjects.Base;
 using GameEngine.GameObjects.Lights;
 using GameEngine.Intefaces;
-using OpenTK.ImGui;
 using OpenTK.Graphics.OpenGL4;
-using OpenTK.Mathematics;
-using OpenTK.Windowing.Common;
-using OpenTK.Windowing.Desktop;
-using OpenTK.Windowing.GraphicsLibraryFramework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using ImGuiNET;
 using GameEngine.Factories;
-using GameEngine.Bases.Components;
 using GameEngine.Bases;
+using GameEngine.RenderPrepearings.FrameBuffers;
+using GameEngine.DefaultMeshes;
+using OpenTK;
+using OpenTK.Windowing.Desktop;
+using OpenTK.Mathematics;
+using OpenTK.ImGui;
+using OpenTK.Windowing.GraphicsLibraryFramework;
+using OpenTK.Windowing.Common;
+using ImGuiNET;
 
 namespace GameEngine
 {
@@ -36,8 +38,11 @@ namespace GameEngine
         public static double Time => _time;
         public static int Width = 1920;
         public static int Height = 1080;
-        public static Vector2i ShadowSize = new Vector2i(2048, 2048);
+        public static Vector2i ShadowSize = new Vector2i(512, 512);
+        public static Vector2i TextureSize = new Vector2i(1024, 1024);
         public KeyboardState Keyboard { get; private set; }
+        public static ImGuiController Controller;
+
         #endregion
 
         #region Private Properties
@@ -50,15 +55,17 @@ namespace GameEngine
         private readonly List<IRenderable> _models = new();
         private List<Light> _lights = new();
         private WorldRenderer _worldRenderer;
-
-        private Shader LightBoxShader;
-
+        private Shader _lightBoxShader;
         private Light _sun;
         internal static int Shadows = 1;
         internal static int GammaEnable = 1;
         private bool enabled;
-        public static ImGuiController Controller;
         private bool isGuiVisible = false;
+        private GBuffer _gBuffer;
+        private Mesh _fsQuad;
+        private Shader _geomShader;
+        private Shader _pointShader;
+        private Shader _finalCombine;
         #endregion
 
         #region Const
@@ -91,8 +98,12 @@ namespace GameEngine
 
             _camera = new Camera(new Vector3(0, 0, 3), Size.X / (float)Size.Y);
             //SimpleShader = new Shader(SIMPLE_SHADER + ".vs", SIMPLE_SHADER + ".fr");
-            LightBoxShader = new Shader(DEFERRED_RENDER_PATH + "LightBoxV.glsl", DEFERRED_RENDER_PATH + "LightBoxfr.glsl");
+            _lightBoxShader = new Shader(SHADERS_PATH + "LightBox.vert", SHADERS_PATH + "LightBox.frag");
+            _geomShader = new Shader(DEFERRED_RENDER_PATH + "DrawGeom.vert", DEFERRED_RENDER_PATH + "DrawGeom.frag");
+            _pointShader = new Shader(DEFERRED_RENDER_PATH + "PointLight.vert", DEFERRED_RENDER_PATH + "PointLight.frag");
+            _finalCombine = new Shader(DEFERRED_RENDER_PATH + "Final.vert", DEFERRED_RENDER_PATH + "Final.frag");
             Random rd = new();
+            _fsQuad = FullScreenQuad.GetQuad();
 
             #region Models
             _models.Add(ModelFactory.GetManModel(new Vector3(0)));
@@ -130,10 +141,12 @@ namespace GameEngine
             _camera.Enable(this);
 
             Controller = new ImGuiController(this);
-            ImGui.StyleColorsDark();
             this.Size = new Vector2i(Width, Height);
             GL.Enable(EnableCap.FramebufferSrgb);
             base.OnLoad();
+            //_gBuffer = new GBuffer();
+            //_gBuffer.Init(Width, Height);
+
             //ToggleFullscreen();
         }
 
@@ -141,18 +154,68 @@ namespace GameEngine
         {
             GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
             _worldRenderer.Render(_camera,RenderFlags.None, RenderFlags.MeshAndTextures);
-            
+            /*Logger.ClearError();
+
+            _worldRenderer.DefaultFBO.Bind();
+            GeomPass();
+            LightPass();
+            _worldRenderer.DefaultFBO.Activate();
+
+            if (Keyboard.IsKeyDown(Keys.F1))
+            {
+                _gBuffer.DumpToScreen(Width, Height);
+            }
+            else
+            {
+                GL.ClearColor(Color4.CornflowerBlue);
+                GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+                GL.CullFace(CullFaceMode.Back);
+                _finalCombine.Use();
+                _finalCombine.SetInt("ColorBuffer", _gBuffer.DiffuseTexture);
+                _finalCombine.SetInt("LightBuffer", _gBuffer.LightTexture);
+                _fsQuad.Draw();
+
+                //Light blub icon rendering
+                GL.Enable(EnableCap.Blend);
+                GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+
+                GL.CullFace(CullFaceMode.Front);
+                _lightBoxShader.Use();
+                _worldRenderer.SetupCamera(_camera, _lightBoxShader);
+                foreach (var item in _worldRenderer.Lights)
+                {
+                    item.SetupModel(_lightBoxShader);
+                    if (item.Mesh != null)
+                    {
+                        _lightBoxShader.SetInt("diffuse", 0);
+                        item.Mesh.Textures[0].Use(TextureUnit.Texture0);
+                        _lightBoxShader.SetVector3("lightColor", item.LightData.Color);
+                        item.DrawMesh(_lightBoxShader);
+                    }
+                }
+
+                GL.Disable(EnableCap.Blend);
+            }
+
+            Logger.CheckLastError();*/
+
+
+
+
 #if DEBUG
-            LightBoxShader.Use();
-            _worldRenderer.SetupCamera(_camera, LightBoxShader);
+            _lightBoxShader.Use();
+            _worldRenderer.SetupCamera(_camera, _lightBoxShader);
             foreach (var item in _worldRenderer.Lights)
             {
-                item.SetupModel(LightBoxShader);
+                item.SetupModel(_lightBoxShader);
                 if (item.Mesh != null)
                 {
+                    _lightBoxShader.SetInt("diffuse", 0);
                     item.Mesh.Textures[0].Use(TextureUnit.Texture0);
-                    LightBoxShader.SetVector3("lightColor", item.LightData.Color);
-                    item.DrawMesh(LightBoxShader);
+                    _lightBoxShader.SetVector3("lightColor", item.LightData.Color);
+                    item.SetupModel(_lightBoxShader);
+                    item.DrawMesh(_lightBoxShader);
                 }
             }
 #endif
@@ -186,6 +249,7 @@ namespace GameEngine
             _worldRenderer.LightShader.Use();
             _worldRenderer.LightShader.SetInt("shadows", Shadows);
             _worldRenderer.LightShader.SetInt("gammaEnable", GammaEnable);
+            _worldRenderer.LightShader.SetFloat("time", (float)Time);
 
             Controller.Update(this, _deltaTime);
             _time += args.Time;
@@ -206,11 +270,6 @@ namespace GameEngine
             Controller.WindowResized(e.Width, e.Height);
             base.OnResize(e);
         }
-        protected override void OnTextInput(TextInputEventArgs e)
-        {
-            base.OnTextInput(e);
-            Controller.PressChar((char)e.Unicode);
-        }
         protected override void OnMouseWheel(MouseWheelEventArgs e)
         {
             base.OnMouseWheel(e);
@@ -219,6 +278,64 @@ namespace GameEngine
         #endregion
 
         #region Private Methods
+
+        private void GeomPass()
+        {
+            _gBuffer.BindForGeometryPass();
+            GL.Enable(EnableCap.DepthTest);
+            {
+                GL.CullFace(CullFaceMode.Back);
+
+                GL.ClearColor(0,0,0,0);
+                GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+                _geomShader.Use();
+
+                _worldRenderer.SetupCamera(_camera, _geomShader);
+                _geomShader.SetVector3("AmbientColor", new Vector3(255, 255, 255));
+                _geomShader.SetVector3("AmbientDirection", new Vector3(1));
+                _geomShader.SetFloat("AmbientPower" ,(float)Math.Sin(2 * 6) + 1 / 2f);
+
+
+                foreach (var b in _worldRenderer.GameObjects)
+                {
+                    b.Render(_geomShader, RenderFlags.MeshAndTextures);
+                }
+            }
+            GL.Disable(EnableCap.DepthTest);
+        }
+        private void LightPass()
+        {
+            _gBuffer.BindForLightPass();
+            //Light rendering
+            GL.ClearColor(0,0,0,0);
+            GL.Clear(ClearBufferMask.ColorBufferBit);
+
+            GL.Enable(EnableCap.Blend);
+            GL.BlendEquation(BlendEquationMode.FuncAdd);
+            GL.BlendFunc(BlendingFactor.One, BlendingFactor.One);
+            GL.DrawBuffers(1,_gBuffer.DrawBuffers);
+
+            GL.CullFace(CullFaceMode.Front);
+
+            _pointShader.Use();
+            _worldRenderer.SetupCamera(_camera, _pointShader);
+            _pointShader.SetVector2("ScreenSize", new Vector2(Width, Height));
+            _pointShader.SetInt("PositionBuffer", _gBuffer.PositionTexture);
+            _pointShader.SetInt("NormalBuffer", _gBuffer.NormalTexture);
+
+            foreach (var pl in _worldRenderer.Lights)
+            {
+                _pointShader.SetVector3("LightCenter",new Vector3( 0, 2.5f, 0));
+                _pointShader.SetFloat("LightRadius", 10);
+                _pointShader.SetVector3("LightColor", new Vector3(1, 1, 1));
+                _pointShader.SetFloat("LightIntensity", 1);
+                _pointShader.SetMatrix4("model", pl.Transform.Model);
+            }
+
+            GL.Disable(EnableCap.Blend);
+            _gBuffer.Restore();
+        }
 
         private static void CalculateFPS()
         {
@@ -326,6 +443,48 @@ namespace GameEngine
                 _camera.AspectRatio = Size.X / (float)Size.Y;
             }
         }
+        private Matrix4 CreateBillboard(Vector3 objectPosition, Vector3 cameraPosition,
+          Vector3 cameraUpVector, Vector3? cameraForwardVector)
+        {
+            Matrix4 result = Matrix4.Identity;
+
+            Vector3 vector;
+            Vector3 vector2;
+            Vector3 vector3;
+            vector.X = objectPosition.X - cameraPosition.X;
+            vector.Y = objectPosition.Y - cameraPosition.Y;
+            vector.Z = objectPosition.Z - cameraPosition.Z;
+            float num = vector.LengthSquared;
+            if (num < 0.0001f)
+            {
+                vector = cameraForwardVector.HasValue ? -cameraForwardVector.Value : new Vector3(0, 0, -1);
+            }
+            else
+            {
+                Vector3.Multiply(vector, (float)(1f / ((float)Math.Sqrt((double)num))), out vector);
+            }
+            Vector3.Cross(cameraUpVector,vector, out vector3);
+            vector3.Normalize();
+            Vector3.Cross(vector, vector3, out vector2);
+            result.M11 = vector3.X;
+            result.M12 = vector3.Y;
+            result.M13 = vector3.Z;
+            result.M14 = 0;
+            result.M21 = vector2.X;
+            result.M22 = vector2.Y;
+            result.M23 = vector2.Z;
+            result.M24 = 0;
+            result.M31 = vector.X;
+            result.M32 = vector.Y;
+            result.M33 = vector.Z;
+            result.M34 = 0;
+            result.M41 = objectPosition.X;
+            result.M42 = objectPosition.Y;
+            result.M43 = objectPosition.Z;
+            result.M44 = 1;
+
+            return result;
+        }
         void onDrawGUI()
         {
             if (ImGui.BeginMainMenuBar())
@@ -367,13 +526,22 @@ namespace GameEngine
                         ImGui.PushID(obj.GetType().ToString() + _worldRenderer.GameObjects.IndexOf(obj));
                         if (ImGui.TreeNode(item.GetType().ToString()))
                         {
-                            ImGui.Text("Position");
+                            ImGui.Text("Transform");
 
-                            Vector3 tmp = item.Transform.Position;
-                            System.Numerics.Vector3 v = new System.Numerics.Vector3(tmp.X, tmp.Y, tmp.Z);
-                            ImGui.DragFloat3("Position", ref v, 0.1f);
-                            item.Transform.Position = new Vector3(v.X, v.Y, v.Z);
-                            ImGui.TreePop();
+                            Vector3 pos = item.Transform.Position;
+                            var p = new System.Numerics.Vector3(pos.X, pos.Y, pos.Z);
+                            ImGui.DragFloat3("Position", ref p, 0.1f);
+                            item.Transform.Position = new Vector3(p.X, p.Y, p.Z);
+
+                            Vector3 rotation = item.Transform.Rotation;
+                            var r = new System.Numerics.Vector3(rotation.X, rotation.Y, rotation.Z);
+                            ImGui.DragFloat3("Rotation", ref r, 0.1f);
+                            item.Transform.Rotation = new Vector3(r.X, r.Y, r.Z);
+
+                            Vector3 scale = item.Transform.Scale;
+                            var s = new System.Numerics.Vector3(scale.X, scale.Y, scale.Z);
+                            ImGui.DragFloat3("Scale", ref s, 0.1f);
+                            item.Transform.Scale = new Vector3(s.X, s.Y, s.Z);
                         }
 
                         ImGui.PopID();
@@ -386,13 +554,24 @@ namespace GameEngine
                             ImGui.PushID(obj.GetType().ToString() + _worldRenderer.Lights.IndexOf(obj));
                             if (ImGui.TreeNode(item.GetType().ToString()))
                             {
-                                ImGui.Text("Position");
-                                Vector3 tmp = item.Transform.Position;
-                                System.Numerics.Vector3 v = new System.Numerics.Vector3(tmp.X, tmp.Y, tmp.Z);
-                                ImGui.DragFloat3("Position", ref v, 0.1f);
-                                item.Transform.Position = new Vector3(v.X, v.Y, v.Z);
+                                ImGui.Text("Transform");
 
-                                ImGui.Text("Intensity");
+                                Vector3 pos = item.Transform.Position;
+                                var p = new System.Numerics.Vector3(pos.X, pos.Y, pos.Z);
+                                ImGui.DragFloat3("Position", ref p, 0.1f);
+                                item.Transform.Position = new Vector3(p.X, p.Y, p.Z);
+
+                                Vector3 rotation = item.Transform.Rotation;
+                                var r = new System.Numerics.Vector3(rotation.X, rotation.Y, rotation.Z);
+                                ImGui.DragFloat3("Rotation", ref r, 0.1f);
+                                item.Transform.Rotation = new Vector3(r.X, r.Y, r.Z);
+
+                                Vector3 scale = item.Transform.Scale;
+                                var s = new System.Numerics.Vector3(scale.X, scale.Y, scale.Z);
+                                ImGui.DragFloat3("Scale", ref s, 0.1f);
+                                item.Transform.Scale = new Vector3(s.X, s.Y, s.Z);
+
+                                ImGui.Text("LightData");
                                 float intens = item.LightData.Intensity;
                                 ImGui.DragFloat("Intensity", ref intens);
                                 item.LightData.Intensity = intens;
@@ -416,6 +595,8 @@ namespace GameEngine
             ImGui.End();
 
             #endregion
+
+          
         }
     }
 }

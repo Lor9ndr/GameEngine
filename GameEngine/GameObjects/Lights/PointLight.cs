@@ -76,8 +76,7 @@ namespace GameEngine.GameObjects.Lights
         {
             for (int i = 0; i < LightSpaceMatrices.Length; i++)
             {
-                Matrix4 view = Matrix4.LookAt(Transform.Position, Transform.Position + _directions[i], _ups[i]);
-                LightSpaceMatrices[i] = view * GetProjection;
+                LightSpaceMatrices[i] = Matrix4.LookAt(Transform.Position, Transform.Position + _directions[i], _ups[i]) * GetProjection;
             }
         }
 

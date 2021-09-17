@@ -1,4 +1,5 @@
-﻿using OpenTK.Mathematics;
+﻿using OpenTK;
+using OpenTK.Mathematics;
 
 namespace GameEngine.Structs
 {

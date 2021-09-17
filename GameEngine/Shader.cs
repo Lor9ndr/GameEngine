@@ -184,8 +184,9 @@ namespace GameEngine.GameObjects
             GL.GetProgram(program, GetProgramParameterName.LinkStatus, out var code);
             if (code != (int)All.True)
             {
+                Console.WriteLine(GL.GetProgramInfoLog(program));
                 // We can use `GL.GetProgramInfoLog(program)` to get information about the error.
-                throw new Exception($"Error occurred whilst linking Program({program}, path- {_path})");
+                throw new Exception($"{GL.GetProgramInfoLog(program)}, path- {_path})");
             }
         }
 

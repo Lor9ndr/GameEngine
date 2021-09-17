@@ -78,7 +78,7 @@ uniform bool shadows;
 
 out vec4 FragColor;
 
-in VS_OUT {
+in GS_OUT {
 	highp vec3 FragPos;
 	highp vec3 Normal;
 	highp vec2 TexCoords;

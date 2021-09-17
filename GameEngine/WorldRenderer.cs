@@ -4,8 +4,8 @@ using GameEngine.GameObjects.Base;
 using GameEngine.GameObjects.Lights;
 using GameEngine.Intefaces;
 using GameEngine.RenderPrepearings.FrameBuffers.Base;
+using OpenTK;
 using OpenTK.Graphics.OpenGL4;
-using OpenTK.ImGui;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Desktop;
 using System;
@@ -24,7 +24,7 @@ namespace GameEngine
         public List<Light> Lights;
         public Shader DepthCubeShader = new Shader(Game.SHADOW_SHADERS_PATH + "DepthCubeMap.vert", Game.SHADOW_SHADERS_PATH + "DepthCubeMap.frag", Game.SHADOW_SHADERS_PATH + "DepthCubeMap.geom");
         public Shader DepthDirectShader = new Shader(Game.SHADOW_SHADERS_PATH + "Depth.vert", Game.SHADOW_SHADERS_PATH + "Depth.frag");
-        public Shader LightShader = new Shader(Game.SHADOW_SHADERS_PATH + "SimpleShader.vert", Game.SHADOW_SHADERS_PATH + "SimpleShader.frag");
+        public Shader LightShader = new Shader(Game.SHADERS_PATH + "SimpleShader.vert", Game.SHADERS_PATH + "SimpleShader.frag", Game.SHADERS_PATH + "SimpleShader.geom");
         public FrameBuffer DefaultFBO;
 
         public WorldRenderer(List<IRenderable> gameObjects)
@@ -99,7 +99,10 @@ namespace GameEngine
 
         public void RenderObjects(Camera camera, Shader shader, RenderFlags objFlags)
         {
-            shader.SetFloat("material.shininess", 32.0f);
+            if (objFlags.HasFlag(RenderFlags.Textures))
+            {
+                shader.SetFloat("material.shininess", 32.0f);
+            }
             foreach (var item in GameObjects)
             {
                 item.Render(shader, objFlags);
@@ -163,6 +166,8 @@ namespace GameEngine
         {
             shader.Use();
             shader.SetMatrix4("VP", camera.GetViewMatrix() * camera.GetProjectionMatrix());
+            shader.SetMatrix4("projection", camera.GetProjectionMatrix());
+            shader.SetMatrix4("view", camera.GetViewMatrix() );
             shader.SetVector3("viewPos", camera.Position);
         }
 

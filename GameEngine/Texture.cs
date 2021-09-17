@@ -44,7 +44,6 @@ namespace GameEngine
             // Load the image
             using (Bitmap image = new(path))
             {
-
                 var data = image.LockBits(
                     new Rectangle(0, 0, image.Width, image.Height),
                     ImageLockMode.ReadOnly,
@@ -56,7 +55,7 @@ namespace GameEngine
                     image.Width,
                     image.Height,
                     0,
-                    OpenTK.Graphics.OpenGL4.PixelFormat.Bgra,
+                    PixelFormat.Bgra,
                     PixelType.UnsignedByte,
                     data.Scan0);
             }
@@ -74,15 +73,17 @@ namespace GameEngine
         }
 
         public virtual void Bind(TextureTarget type) => GL.BindTexture(type, Handle);
-        public virtual void SetTexParameters(Vector2i size, PixelInternalFormat format, PixelType type) 
+        public virtual void SetTexParameters(Vector2i size, PixelInternalFormat format, PixelType type) => SetTexParameters(size, format,(PixelFormat)format, type);
+
+
+        public virtual void SetTexParameters(Vector2i size, PixelInternalFormat format, PixelFormat anotherFormat , PixelType type)
         {
             Bind(TextureTarget.Texture2D);
-            GL.TexImage2D(TextureTarget.Texture2D, 0, format, size.X, size.Y, 0, (PixelFormat)format, type, (IntPtr)null);
+            GL.TexImage2D(TextureTarget.Texture2D, 0, format, size.X, size.Y, 0, anotherFormat, type, (IntPtr)null);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
-            GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureCompareFunc, (int)DepthFunction.Lequal);
             float[] borderColor = { 1.0f, 1.0f, 1.0f, 1.0f };
             GL.TexParameter(TextureTarget.Texture2D, TextureParameterName.TextureBorderColor, borderColor);
         }

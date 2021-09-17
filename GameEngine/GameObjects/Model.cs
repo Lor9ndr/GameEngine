@@ -178,15 +178,17 @@ namespace GameEngine.GameObjects
                 LogStream.IsVerboseLoggingEnabled = true;
                 var logger = new ConsoleLogStream();
                 logger.Attach();
-                Scene scene = importer.ImportFile(_path,
-                   PostProcessSteps.Triangulate |
+                Scene scene = importer.ImportFile(_path, 
+                    PostProcessSteps.FlipUVs | 
                     PostProcessSteps.GenerateUVCoords |
-                    PostProcessSteps.GenerateNormals |
-                    PostProcessSteps.FlipUVs |
+                    PostProcessSteps.OptimizeMeshes | 
+                    PostProcessSteps.SplitLargeMeshes | 
+                    PostProcessSteps.GenerateNormals  | 
+                    PostProcessSteps.RemoveRedundantMaterials | 
+                    PostProcessSteps.ImproveCacheLocality |
                     PostProcessSteps.FindDegenerates |
                     PostProcessSteps.FixInFacingNormals |
-                    PostProcessSteps.GenerateSmoothNormals |
-                    PostProcessSteps.OptimizeMeshes
+                    PostProcessSteps.CalculateTangentSpace
                     );
                 logger.Detach();
                 ProcessNode(scene.RootNode, scene);

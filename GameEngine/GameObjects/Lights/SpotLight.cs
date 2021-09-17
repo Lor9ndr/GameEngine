@@ -77,6 +77,10 @@ namespace GameEngine.GameObjects.Lights
 
             SetupModel(shader);
             UpdateMatrices();
+            if (flags.HasFlag(RenderFlags.Mesh))
+            {
+                Mesh.Draw();
+            }
         }
 
         public override Matrix4 GetProjection => Matrix4.CreatePerspectiveFieldOfView(CutOff * 2.0f, 1.0f, NearPlane, FarPlane);

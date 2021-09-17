@@ -1,13 +1,8 @@
 ﻿using GameEngine.GameObjects;
-using GameEngine.Intefaces;
-using GameEngine.RenderPrepearings;
 using GameEngine.Structs;
+using OpenTK;
 using OpenTK.Mathematics;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace GameEngine.DefaultMeshes
 {
