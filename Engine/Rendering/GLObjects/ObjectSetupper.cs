@@ -1,0 +1,96 @@
+﻿using Engine.GLObjects;
+using Engine.Structs;
+using GameEngine.Enums;
+using OpenTK.Graphics.OpenGL4;
+using System;
+using System.Runtime.InteropServices;
+
+namespace Engine.Rendering.GLObjects
+{
+    public class ObjectSetupper
+    {
+        protected SetupLevel _level;
+        protected Vertex[] _vertices;
+        protected int[] _indices;
+        protected VAO _vao;
+        protected VBO _vbo;
+        protected EBO _ebo;
+
+        public ObjectSetupper(Vertex[] vertices, int[] indices = null)
+        {
+            _vertices = vertices;
+            _indices = indices;
+            _vbo = new VBO();
+
+        }
+        public virtual void SetAndBindVAO(SetupLevel levels, VAO vao= default)
+        {
+            _level = levels;
+            if (vao != default)
+            {
+                _vao = vao;
+            }
+            else
+            {
+                _vao = new VAO();
+                _vao.Setup(_vertices);
+            }
+            _vbo.Setup(_vertices);
+
+            if (_indices != null)
+            {
+                _ebo = new EBO();
+                _ebo.Setup(_indices);
+            }
+            SetupALevel();
+
+            GL.VertexArrayVertexBuffer(GetVAO(), 0, GetVBO(), (IntPtr)null, Vertex.Size);
+            GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
+            GL.BindVertexArray(0);
+        }
+      
+        protected void SetupALevel()
+        {
+            int lvl = (int)_level;
+            if (lvl >= 1)
+            {
+                GL.EnableVertexAttribArray(0);
+                GL.VertexAttribPointer(0, 3, VertexAttribPointerType.Float, false, Vertex.Size, Marshal.OffsetOf<Vertex>("Position"));
+
+                if (lvl >= 2)
+                {
+                    GL.EnableVertexAttribArray(1);
+                    GL.VertexAttribPointer(1, 3, VertexAttribPointerType.Float, false, Vertex.Size, Marshal.OffsetOf<Vertex>("Normal"));
+
+                    if (lvl >= 3)
+                    {
+                        GL.EnableVertexAttribArray(2);
+                        GL.VertexAttribPointer(2, 2, VertexAttribPointerType.Float, false, Vertex.Size, Marshal.OffsetOf<Vertex>("TexCoords"));
+
+                        if (lvl >= 4)
+                        {
+                            GL.EnableVertexAttribArray(3);
+                            GL.VertexAttribPointer(3, 3, VertexAttribPointerType.Float, false, Vertex.Size, Marshal.OffsetOf<Vertex>("Tangent"));
+
+                            if (lvl >= 5)
+                            {
+                                GL.EnableVertexAttribArray(4);
+                                GL.VertexAttribPointer(4, 3, VertexAttribPointerType.Float, false, Vertex.Size, Marshal.OffsetOf<Vertex>("Bitangent"));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+       
+        public int IndicesCount => _indices.Length;
+        public int VerticesCount => _vertices.Length;
+        public bool HasIndices => _indices != null && _indices.Length > 0;
+        public int GetVAO() => _vao.Vao;
+        public VAO GetVAOClass() => _vao;
+        public int GetVBO() => _vbo.Vbo;
+        public int GetEBO() => _ebo.Ebo;
+        public Vertex[] GetVertices => _vertices;
+        public int[] GetIndices => _indices;
+    }
+}

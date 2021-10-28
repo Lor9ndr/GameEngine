@@ -1,0 +1,42 @@
+﻿using Engine.Components;
+using Engine.Extensions;
+using Engine.GameObjects;
+using Engine.GameObjects.Lights;
+using Engine.GLObjects.Textures;
+using Engine.Rendering.DefaultMeshes;
+using Engine.Rendering.GameObjects;
+using OpenTK.Mathematics;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Engine.Rendering.Factories
+{
+    public static class LightFactory
+    {
+        private static Random _rd = new Random();
+
+        #region Default Data
+        private static Texture _lightTexture = Texture.LoadFromFile(Game.TEXTURES_PATH + "/blub.png", "diffuse", string.Empty);
+        private static Texture _spotLightTexture = Texture.LoadFromFile(Game.TEXTURES_PATH + "/SpotLightIcon.png", "diffuse", string.Empty);
+        private static Model _cube => Cube.GetTexturedModel(_lightTexture);
+        private static Model _spotLightCube => Cube.GetTexturedModel(_spotLightTexture);
+        private static LightData _directData => new LightData(ambient: new Vector3(0.6f), diffuse: new Vector3(1f), color: new Vector3(1f), specular: new Vector3(0.7f), intensity:1.0f);
+        private static LightData _pointData => new LightData(ambient: new Vector3(0.25f), diffuse: new Vector3(1f), color: new Vector3(1), specular: new Vector3(0.3f),intensity: 1.0f);
+        private static LightData _pointRandomColorData => new LightData(ambient: new Vector3(0.25f), diffuse: new Vector3(1f), color: new Vector3(_rd.NextFloat(0f, 1f), _rd.NextFloat(0f, 1f), _rd.NextFloat(0f, 1f)), specular: new Vector3(0.3f), intensity: 1.0f);
+
+        private static LightData _spotData => new LightData(diffuse: new Vector3(1), ambient: new Vector3(1), color: new Vector3(1f), specular: new Vector3(1.0f), intensity: 5.0f);
+        #endregion
+
+        #region Getters
+        public static Light GetPointLight(Vector3 position) => new PointLight(_cube, _pointData,  new Transform(position));
+        public static Light GetRandomColorPointLight(Vector3 position) => new PointLight(_cube, _pointRandomColorData,  new Transform(position));
+
+        public static Light GetDirectLight(Vector3 position, Vector3 direction) => new DirectLight(_cube, _directData, new Transform(position, direction));
+
+        public static Light GetSpotLight(Vector3 position, Vector3 direction) => new SpotLight(_spotData,new Transform(position, direction), model: _spotLightCube);
+        #endregion
+    }
+}
