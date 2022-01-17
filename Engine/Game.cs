@@ -1,29 +1,39 @@
-﻿using OpenTK.Graphics.OpenGL4;
+﻿using BulletSharp;
+using Engine.Components;
+using Engine.GameObjects.Lights;
+using Engine.Physics;
+using Engine.Rendering.DefaultMeshes;
+using Engine.Rendering.Enums;
+using Engine.Rendering.Factories;
+using Engine.Rendering.GameObjects;
+using ImGuiNET;
+using OpenTK.Graphics.OpenGL4;
+using OpenTK.ImGui;
+using OpenTK.Mathematics;
+using OpenTK.Windowing.Common;
+using OpenTK.Windowing.Desktop;
+using OpenTK.Windowing.GraphicsLibraryFramework;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using OpenTK.Windowing.Desktop;
-using OpenTK.Mathematics;
-using OpenTK.ImGui;
-using OpenTK.Windowing.GraphicsLibraryFramework;
-using OpenTK.Windowing.Common;
-using ImGuiNET;
-using Engine.Rendering.Enums;
-using Engine.GameObjects.Lights;
-using Engine.Rendering.GameObjects;
-using Engine.GLObjects.FrameBuffers;
-using Engine.Rendering.DefaultMeshes;
-using Engine.Rendering.Factories;
-using Engine.Components;
+using System.Threading;
 
 namespace Engine
 {
+    /// <summary>
+    /// Основной класс игры 
+    /// TODO: добавить разные ивенты
+    /// </summary>
     public class Game : GameWindow
     {
         #region Constructors
 
+        /// <summary>
+        /// Основной конструктор
+        /// </summary>
+        /// <param name="gameWindowSettings"></param>
         public Game(GameWindowSettings gameWindowSettings)
-            : base(gameWindowSettings, new NativeWindowSettings() { APIVersion = new Version(4, 6) })
+            : base(gameWindowSettings, new NativeWindowSettings() { APIVersion = new Version(4, 6), Profile = ContextProfile.Core })
         {
             CursorGrabbed = true;
         }
@@ -31,64 +41,177 @@ namespace Engine
 
         #region Public Properties
 
-        public static float FPS { get; private set; }
-        public static float DeltaTime => _deltaTime;
-        public static double Time => _time;
-        public static int Width = 1920;
-        public static int Height = 1080;
-        private static Vector2i shadowSize = new Vector2i(2048, 2048);
-        public static Vector2i TextureSize = new Vector2i(2048, 2048);
-        public KeyboardState Keyboard { get; private set; }
+        /// <summary>
+        /// Менеджер физики
+        /// </summary>
+        public static PhysicsManager PhysicsManager { get => _physicsManager; set => _physicsManager = value; }
+
+        /// <summary>
+        /// Поток обновлений
+        /// </summary>
+        public static Thread UpdateThread { get => _updateThread; set => _updateThread = value; }
+
+        /// <summary>
+        /// Поток для обработки клавиатуры
+        /// </summary>
+        public static Thread KeyBoardThread { get => _keyBoardThread; set => _keyBoardThread = value; }
+
+        /// <summary>
+        /// Токенсурс для закрытия потоков
+        /// </summary>
+        public CancellationTokenSource CancellationTokenSource { get => _cancellationTokenSource; set => _cancellationTokenSource = value; }
+
+        /// <summary>
+        /// Ширина окна
+        /// </summary>
+        public static int Width { get => _width; set => _width = value; }
+
+        /// <summary>
+        /// Высота окна
+        /// </summary>
+        public static int Height { get => _height; set => _height = value; }
+
+        /// <summary>
+        /// Интеграция OpenGL
+        /// </summary>
+        public static EngineGL EngineGL { get => _engineGL; set => _engineGL = value; }
+
+        /// <summary>
+        /// Разрешение текстур, пока не работает
+        /// </summary>
+        public static Vector2i TextureSize { get => _textureSize; set => _textureSize = value; }
+
+        /// <summary>
+        /// Контроллер отрисовки интерфейса
+        /// </summary>
+        public static ImGuiController Controller { get => _controller; set => _controller = value; }
+
+        /// <summary>
+        /// Клавиатура
+        /// </summary>
+        public Keyboard Keyboard { get; private set; }
+
+        /// <summary>
+        /// Делегат на изменения разрешения теней
+        /// </summary>
+        /// <param name="shadows">разрешение теней</param>
         public delegate void OnShadowsChange(Vector2i shadows);
+
+        /// <summary>
+        /// Событие на изменение разрешения теней
+        /// </summary>
         public static event OnShadowsChange ChangeShadowsSize;
-        public static Vector2i ShadowSize {
-            get => shadowSize;
-            set {
-                if (value != shadowSize)
+
+        /// <summary>
+        /// Разрешение теней
+        /// </summary>
+        public static Vector2i ShadowSize
+        {
+            get => _shadowSize;
+            set
+            {
+                if (value != _shadowSize)
                 {
 
-                    shadowSize = value;
+                    _shadowSize = value;
                     ChangeShadowsSize(value);
                 }
             }
         }
 
+        /// <summary>
+        /// Токен для закрытия потоков
+        /// </summary>
+        public CancellationToken CancellationToken;
+
+        /// <summary>
+        /// Кадры в секунду
+        /// </summary>
+        public static float FPS { get; private set; }
+
+        /// <summary>
+        /// Разница во времени между обновлением
+        /// </summary>
+        public static float DeltaTime => _deltaTime;
+
+        /// <summary>
+        /// Время приложения
+        /// </summary>
+        public static double Time => _time;
+
+        public static List<float> Stats { get; private set; } = new List<float>();
+
+        /// <summary>
+        /// Класс рендера мира
+        /// </summary>
+        public WorldRenderer WorldRenderer;
+
+        /// <summary>
+        /// Просто тестовая штуковина для шейдера геометрии
+        /// </summary>
         public bool Explode;
 
-        public static ImGuiController Controller;
+        /// <summary>
+        /// Настройка, отвечающая за свет
+        /// </summary>
+        public static bool EnableLight = true;
+
+        /// <summary>
+        /// Настройка, отвечающая за туман, который скрывает видимость (хз как точней описать)
+        /// </summary>
+        public static bool EnableDistanceFOG = true;
+
+        /// <summary>
+        /// Настройка, отвечающая за включение/выключение отрисовку теней
+        /// </summary>
+        public static bool Shadows = true;
+
+        /// <summary>
+        /// Настройка, отвечающая за гамму
+        /// </summary>
+        public bool GammaEnable = true;
 
         #endregion
 
         #region Private Properties
-        private double oldTimeSinceStart = 0;
-        private static float _framesPerSecond = 0.0f;
-        private static float _lastTime = 0.0f;
+
+        private double oldTimeSinceStart;
+        private static float _framesPerSecond;
+        private static float _lastTime;
         private static double _time;
         private static float _deltaTime;
         private Camera _camera;
         private readonly List<GameObject> _models = new();
-        private List<Light> _lights = new();
-        private WorldRenderer _worldRenderer;
+        private readonly List<Light> _lights = new();
         private Shader _lightBoxShader;
-        private Light _sun;
-       
-        private bool enabled;
-        private bool isGuiVisible = false;
-        private GBuffer _gBuffer;
-        private Mesh _fsQuad;
-        private Shader _geomShader;
-        private Shader _pointShader;
-        private Shader _finalCombine;
+        private bool _enabled;
+        private bool _isGuiVisible;
+        private bool _multiSample = true;
+        private bool _useNormalMapping;
+        private Player _player;
+        private static Vector2i _shadowSize = new Vector2i(1024, 1024);
 
-        public static bool EnableLight = true;
-        public static bool EnableDistanceFOG = true;
-        public static bool Shadows = true;
-        public bool GammaEnable;
-        private bool MultiSample;
+        private int _selectedObj;
+        private bool _opened = false;
+        private static PhysicsManager _physicsManager;
+        private static Thread _updateThread;
+        private static Thread _keyBoardThread;
+        private CancellationTokenSource _cancellationTokenSource;
+        private static ImGuiController _controller;
+        private static int _width = 1920;
+        private static int _height = 1080;
+        private static Vector2i _textureSize = new Vector2i(1024, 1024);
+        private static EngineGL _engineGL = new EngineGL();
         #endregion
 
         #region Const
-        public const string RESOURCE_PATH = "../../../Resources/";
+        /// <summary>
+        /// Фиксированное обновление в столько то мс или меньше,хз пока, не сильно нужно пока что
+        /// </summary>
+        public const float FixedUpdate = 0.0005f;
+
+
+        public const string RESOURCE_PATH = "../../../../Engine/Resources/";
         public const string TEXTURES_PATH = RESOURCE_PATH + "Textures/";
         public const string OBJ_PATH = RESOURCE_PATH + "OBJ/";
         public const string NANOSUIT_PATH = OBJ_PATH + "NanoSuit/nanosuit.obj";
@@ -97,7 +220,7 @@ namespace Engine
         public const string TERRAIN_PATH = OBJ_PATH + "Terrain/terrain1.fbx";
         public const string SKYBOX_TEXTURES_PATH = TEXTURES_PATH + "SkyBox/";
 
-        public const string SHADERS_PATH = "../../../Shaders/";
+        public const string SHADERS_PATH = "../../../../Engine/Shaders/";
         public const string SIMPLE_SHADER = SHADERS_PATH + "SimpleShader";
         public const string DEFERRED_RENDER_PATH = SHADERS_PATH + "DeferredShading/";
         public const string ANOTHER_SHADERS_PATH = DEFERRED_RENDER_PATH + "Another/";
@@ -109,81 +232,181 @@ namespace Engine
         #endregion
 
         #region Overrides
+        /// <summary>
+        /// Срабатывает при загрузке окна
+        /// </summary>
         protected override void OnLoad()
         {
-            GL.ClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-
-            GL.Enable(EnableCap.DepthTest);
-
-            _camera = new Camera(new Vector3(0, 0, 3), Size.X / (float)Size.Y);
-            //SimpleShader = new Shader(SIMPLE_SHADER + ".vs", SIMPLE_SHADER + ".fr");
+            EngineGL.ClearColor(1f, 1f, 1f, 1.0f)
+                .DebugMessageCallback(Logger.DebugProcCallback, IntPtr.Zero)
+                .Enable(EnableCap.DebugOutput)
+                .Enable(EnableCap.DebugOutputSynchronous)
+                .Enable(EnableCap.DepthTest)
+                .Enable(EnableCap.FramebufferSrgb)
+                .Enable(EnableCap.DepthTest)
+                .Disable(EnableCap.CullFace);
+            PhysicsManager = new PhysicsManager();
+            _camera = new Camera(new Vector3(0, 0, 0), Size.X / (float)Size.Y);
             _lightBoxShader = new Shader(SHADERS_PATH + "LightBox.vert", SHADERS_PATH + "LightBox.frag");
-            _geomShader = new Shader(DEFERRED_RENDER_PATH + "DrawGeom.vert", DEFERRED_RENDER_PATH + "DrawGeom.frag");
-            _pointShader = new Shader(DEFERRED_RENDER_PATH + "PointLight.vert", DEFERRED_RENDER_PATH + "PointLight.frag");
-            _finalCombine = new Shader(DEFERRED_RENDER_PATH + "Final.vert", DEFERRED_RENDER_PATH + "Final.frag");
             Random rd = new();
-            _fsQuad = FullScreenQuad.GetQuad();
+            // Model Loading
 
             #region Models
-            _models.Add(new GameObject(ModelFactory.GetManModel()));
-            for (int i = 0; i < 3; i++)
-            {
-                var pos = new Vector3(rd.Next(-20, 15), rd.Next(0, 30), rd.Next(-15, 16));
-                Transform tr = new Transform(pos);
-                _models.Add(new GameObject(ModelFactory.GetNanoSuitModel(), tr));
+            _player = new Player(_camera, this);
+            _models.Add(_player);
 
+            var pos = new Vector3(0);
+            Transform tr = new Transform(pos, new Vector3(0), new Vector3(0), new Vector3(3f));
+
+            GameObject obj = new GameObject(ModelFactory.GetDancingVampire(), tr);
+            _models.Add(obj);
+            tr = new Transform(new Vector3(10, 0, 10), new Vector3(0), new Vector3(0), new Vector3(1f));
+
+            
+            var m1 = new GameObject(ModelFactory.GetNanoSuitModel(), tr);
+            tr = new Transform(new Vector3(10, 0, -10), new Vector3(0), new Vector3(0), new Vector3(0.5f));
+            var m2 = new GameObject(ModelFactory.GetNanoSuitModel(), tr);
+            m2.AddChildren(m1);
+            _models.Add(m2);
+            _models.Add(m1);
+
+            tr = new Transform(new Vector3(-10, -10, 10), new Vector3(0), new Vector3(0), new Vector3(0.05f));
+            var terr = new GameObject(ModelFactory.GetTerrainModel(), tr);
+           /* foreach (var mesh in terr.Model.Meshes)
+            {
+                ICollection<BulletSharp.Math.Vector3> positions = new List<BulletSharp.Math.Vector3>();
+                foreach (var position in mesh.ObjectSetupper.Vertices)
+                {
+                    positions.Add(BulletExtensions.GetVector(position.Position * tr.Scale));
+                }
+                //ConvexHullShape convexShape = new ConvexHullShape(positions);
+                ICollection<int> indices = new List<int>();
+                foreach (var item in mesh.ObjectSetupper.GetIndices())
+                {
+                    indices.Add((int)item);
+                }
+                // TODO: Create a normal Model Collision based on vertices & triangles
+                // Very expensive collision calculation 
+                // incorrect places of colliders
+                TriangleIndexVertexArray triangleIndexVertexArray = new TriangleIndexVertexArray(indices, positions);
+                ConvexTriangleMeshCollider shape = new ConvexTriangleMeshCollider(triangleIndexVertexArray);
+                shape.BaseCollider = new GameObject(new GameObjects.Model(mesh,$"mesh{meshCounter}"));
+                var rb = PhysicsManager.LocalCreateRigidBody(0, BulletExtensions.GetMatrix(Matrix4.CreateTranslation(terr.Transform.Position)), shape);
+                PhysicsManager.World.AddRigidBody(rb);
+                meshCounter++;
+                terr.RigidBody = rb;
+            }*/
+           
+
+            _models.Add(terr);
+
+            _models.Add(new GameObject(ModelFactory.GetNanoSuitModel(), tr));
+            tr = new Transform(new Vector3(10, 0, 20), new Vector3(0), new Vector3(0), new Vector3(5f));
+            _models.Add(new GameObject(ModelFactory.GetPBRTV(), tr));
+            var planeTr = new Transform(new Vector3(0, -30, 0), new Vector3(0), new Vector3(0), new Vector3(1000, 0, 1000));
+            var terrain = new GameObject(DefaultMesh.GetDefaultCube, planeTr);
+
+            CollisionShape groundShape = new BoxCollider(1000, 1, 1000);
+            PhysicsManager.collisionShapes.Add(groundShape);
+
+            var ground = PhysicsManager.LocalCreateRigidBody(0, BulletExtensions.GetMatrix(Matrix4.CreateTranslation(terrain.Transform.Position)), groundShape);
+
+            ground.UserObject = "Ground";
+            terrain.RigidBody = ground;
+            _models.Add(terrain);
+            PhysicsManager.World.AddRigidBody(ground);
+
+            for (int i = 0; i < 10; i++)
+            {
+                var position = new Vector3(rd.Next(-25, 25), rd.Next(50, 100), rd.Next(-25, 25));
+                tr = new Transform(position);
+                SphereCollider shape = new SphereCollider(tr.Scale.X);
+                PhysicsManager.collisionShapes.Add(shape);
+                BulletSharp.Math.Vector3 localInertia = shape.CalculateLocalInertia(1.0f);
+                var rbInfo = new RigidBodyConstructionInfo(1.0f, null, shape, localInertia);
+                rbInfo.MotionState = new DefaultMotionState(BulletExtensions.GetMatrix(Matrix4.CreateTranslation(tr.Position)));
+                EngineRigidBody body = new EngineRigidBody(rbInfo);
+                body.CollisionShape = shape;
+                PhysicsManager.World.AddRigidBody(body);
+                GameObject go = new GameObject(DefaultMesh.GetSphere, tr, body);
+                _models.Add(go);
+                rbInfo.Dispose();
             }
-            _models.Add(new GameObject(ModelFactory.GetTerrainModel(), new Transform(new Vector3(0), new Vector3(0), new Vector3(0), new Vector3(0.06f),new Vector3(1,0,0),1)));
 
             #endregion
 
             #region Lights
-            _sun = LightFactory.GetDirectLight(new Vector3(0.5555345f, 10.0f, 0.412412f), new Vector3(0.0f,0.0f,0.0f));
-            //Light sl = LightFactory.GetSpotLight(_camera.Position, _camera.Front);
-            //_lights.Add(sl);
-            _lights.Add(_sun);
+            _lights.Add(LightFactory.GetDirectLight(new Vector3(0.5555345f, 25, 0.412412f), new Vector3(0.0f, 0.0f, 0.0f)));
 
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < 5; i++)
             {
-                var position = new Vector3(rd.Next(-5, 6), rd.Next(0, 10), rd.Next(-5, 5));
-                var direction = new Vector3(rd.Next(-100,100), rd.Next(-100,100), rd.Next(-100, 100));
+                var position = new Vector3(rd.Next(-25, 25), rd.Next(5, 10), rd.Next(-25, 25));
+                var direction = new Vector3(0, -1, 0);
                 _lights.Add(LightFactory.GetSpotLight(position, direction));
             }
 
             for (int i = 0; i < 5; i++)
             {
-                var position = new Vector3(rd.Next(-5, 6), rd.Next(0, 10), rd.Next(-5, 5));
+                var position = new Vector3(rd.Next(-25, 25), rd.Next(10, 25), rd.Next(-25, 25));
                 _lights.Add(LightFactory.GetRandomColorPointLight(position));
             }
             #endregion
 
-            _worldRenderer = new WorldRenderer(_models, _lights, this);
+            WorldRenderer = new WorldRenderer(_models, _lights, this);
             _camera.Enable(this);
 
             Controller = new ImGuiController(this);
             this.Size = new Vector2i(Width, Height);
-            GL.Enable(EnableCap.FramebufferSrgb);
+
+
             base.OnLoad();
 
             //ToggleFullscreen();
+            CancellationTokenSource = new CancellationTokenSource();
+            CancellationToken = CancellationTokenSource.Token;
+            Keyboard = new Keyboard(this);
+            HandleKeyBoard();
+
+            MouseDown += Game_MouseDown;
+            ThreadsStart();
         }
 
+        /// <summary>
+        /// Срабатывает на каждый каждый рендр кадра
+        /// </summary>
+        /// <param name="args"></param>
         protected override void OnRenderFrame(FrameEventArgs args)
         {
-            GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
-            _worldRenderer.Render(_camera,RenderFlags.None, RenderFlags.MeshAndTextures);
+            EngineGL
+                .Enable(EnableCap.DepthTest)
+                .Enable(EnableCap.DepthClamp)
+                .DepthMask(true)
+                .Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+            WorldRenderer.Render(_camera, RenderFlags.LightData | RenderFlags.ProcessShadow, RenderFlags.MeshTexturesAnimation);
+
 #if DEBUG
-            _worldRenderer.RenderLights(_camera, _lightBoxShader, RenderFlags.MeshAndTextures);
+            WorldRenderer.RenderLights(_camera, _lightBoxShader, RenderFlags.MeshAndTextures);
+            foreach (var item in WorldRenderer.GameObjects)
+            {
+                if (item.RigidBody is null)
+                {
+                    continue;
+                }
+                item.RigidBody.Render(_lightBoxShader, RenderFlags.MeshAndTextures);
+            }
+
 #endif
-            if (isGuiVisible)
+            if (_isGuiVisible)
             {
                 onDrawGUI();
                 Controller.Render();
             }
-
             SwapBuffers();
         }
-
+        /// <summary>
+        /// Срабатывает на каждое обновление кадра
+        /// </summary>
+        /// <param name="args"></param>
         protected override void OnUpdateFrame(FrameEventArgs args)
         {
             CalculateFPS();
@@ -191,43 +414,36 @@ namespace Engine
             Title =
                 $"FPS: {FPS}," +
             $" Objects: {_models.Count}," +
-            $" Lights: {_lights.Count}" ;
-            _worldRenderer.Update();
-            if ((bool)(KeyboardState.IsKeyDown(Keys.O)))
-            {
-                _lights.OfType<SpotLight>().FirstOrDefault().Transform.Position = _camera.Position;
-                _lights.OfType<SpotLight>().FirstOrDefault().Transform.Direction = _camera.Front;
-            }
-
-            _worldRenderer.LightShader.Use();
-            _worldRenderer.LightShader.SetInt("shadows", Shadows);
-            _worldRenderer.LightShader.SetInt("gammaEnable", GammaEnable);
-            _worldRenderer.LightShader.SetFloat("time", (float)Time);
-            _worldRenderer.LightShader.SetInt("EnableLight", EnableLight);
-            _worldRenderer.LightShader.SetInt("EnableDistanceFOG", EnableDistanceFOG);
-            _worldRenderer.LightShader.SetInt("explodeObject", Explode);
-
-            if (MultiSample)
-            {
-                GL.Enable(EnableCap.Multisample);
-            }
-            else
-            {
-                GL.Disable(EnableCap.Multisample);
-            }
+            $" Lights: {_lights.Count}";
+            PhysicsManager.Update((float)args.Time);
+            WorldRenderer.Update(DeltaTime);
+            // Menu Settings
+            EngineGL.UseShader(WorldRenderer.LightShader)
+                .SetShaderData("shadows", Shadows)
+                .SetShaderData("gammaEnable", GammaEnable)
+                .SetShaderData("time", (float)Time)
+                .SetShaderData("EnableLight", EnableLight)
+                .SetShaderData("EnableDistanceFog", EnableDistanceFOG)
+                .SetShaderData("explodeObject", Explode)
+                .SetShaderData("useNormalMapping", _useNormalMapping);
+            
+            //HandleKeyBoard();
 
             Controller.Update(this, _deltaTime);
             _time += args.Time;
             _deltaTime = (float)_time - (float)oldTimeSinceStart;
-            HandleKeyBoard();
             base.OnUpdateFrame(args);
             oldTimeSinceStart = _time;
         }
 
+        /// <summary>
+        /// Срабатывает при изменении размера
+        /// </summary>
+        /// <param name="e"></param>
         protected override void OnResize(ResizeEventArgs e)
         {
             // Update the opengl viewport
-            GL.Viewport(0, 0, e.Width, e.Height);
+            EngineGL.Viewport(0, 0, Width, Height);
             Width = Size.X;
             Height = Size.Y;
 
@@ -235,18 +451,75 @@ namespace Engine
             Controller.WindowResized(e.Width, e.Height);
             base.OnResize(e);
         }
+        /// <summary>
+        /// Срабатывает на каждом движении колеса
+        /// </summary>
+        /// <param name="e"></param>
         protected override void OnMouseWheel(MouseWheelEventArgs e)
         {
             base.OnMouseWheel(e);
             Controller.MouseScroll(e.Offset);
         }
+        /// <summary>
+        /// Срабатывает при движении мышки
+        /// </summary>
+        /// <param name="e"></param>
         protected override void OnMouseMove(MouseMoveEventArgs e)
         {
             base.OnMouseMove(e);
         }
+        /// <summary>
+        /// Срабатывает при закрытии окна
+        /// </summary>
+        protected override void OnUnload()
+        {
+            CancellationTokenSource.Cancel();
+            PhysicsManager.ExitPhysics();
+            WorldRenderer.Dispose();
+            base.OnUnload();
+            Console.WriteLine($"AverageFPS: {Stats?.Average()}");
+        }
         #endregion
 
         #region Private Methods
+
+        private void Game_MouseDown(MouseButtonEventArgs obj)
+        {
+            if (obj.Button is MouseButton.Button1 && !_isGuiVisible)
+            {
+                var position = new Vector3(_camera.Front + _camera.Transform.Position);
+                var tr = new Transform(position);
+                SphereCollider shape = new SphereCollider(tr.Scale.X);
+                var body = PhysicsManager.LocalCreateRigidBody(1, BulletExtensions.GetMatrix(Matrix4.CreateTranslation(position)), shape);
+
+                PhysicsManager.World.AddRigidBody(body);
+                GameObject go = new GameObject(DefaultMesh.GetSphere, tr, body);
+                body.ApplyCentralImpulse(new BulletSharp.Math.Vector3(_camera.Front.X * 20, _camera.Front.Y * 20, _camera.Front.Z * 20));
+                _models.Add(go);
+            }
+        }
+
+        private void ThreadsStart()
+        {
+            UpdateThread = new Thread(async () =>
+            {
+                while (!CancellationToken.IsCancellationRequested)
+                {
+                    await WorldRenderer.FixedUpdate();
+                    Thread.Sleep(1);
+                }
+            });
+            KeyBoardThread = new Thread(async () =>
+            {
+                while (!CancellationToken.IsCancellationRequested)
+                {
+                    await Keyboard.UpdateAsync();
+                    Thread.Sleep(1);
+                }
+            });
+            KeyBoardThread.Start();
+            UpdateThread.Start();
+        }
         private static void CalculateFPS()
         {
             float currentTime = (float)(_time);
@@ -257,6 +530,7 @@ namespace Engine
                 _lastTime = currentTime;
 
                 FPS = _framesPerSecond;
+                Stats.Add(FPS);
 
                 _framesPerSecond = 0;
             }
@@ -264,135 +538,80 @@ namespace Engine
 
         private void HandleKeyBoard()
         {
-            Keyboard = KeyboardState;
-            if (Keyboard.IsKeyDown(Keys.Escape))
-            {
-                this.Close();
-            }
-            if (Keyboard.IsKeyDown(Keys.M))
-            {
-                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Point);
-            }
-            if (Keyboard.IsKeyDown(Keys.Comma))
-            {
-                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line);
-            }
-            if (Keyboard.IsKeyDown(Keys.Period))
-            {
-                GL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill);
-            }
-            if (Keyboard.IsKeyDown(Keys.Up))
+            Keyboard.BindKey(Keys.O,new Action(() => {
+                WorldRenderer.Lights.First(s => s.GetType() == typeof(SpotLight)).Transform.Position = _camera.Transform.Position;
+                WorldRenderer.Lights.First(s => s.GetType() == typeof(SpotLight)).Transform.Direction = _camera.Front;
+            }), PressType.Pressing);
+            Keyboard.BindKey(Keys.Escape, Close, PressType.Down);
+            Keyboard.BindKey(Keys.M, new Action(() => { EngineGL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Point);}), PressType.Down);
+            Keyboard.BindKey(Keys.Comma, new Action(() => { EngineGL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Line); }), PressType.Down);
+            Keyboard.BindKey(Keys.Period, new Action(() => { EngineGL.PolygonMode(MaterialFace.FrontAndBack, PolygonMode.Fill); }), PressType.Down);
+            Keyboard.BindKey(Keys.Up, new Action(() =>
             {
                 foreach (var item in _lights.OfType<SpotLight>())
                 {
                     item.LightData.Intensity += 1.0f;
                 }
-            }
-            if (Keyboard.IsKeyDown(Keys.Down))
+            }), PressType.Down);
+
+            Keyboard.BindKey(Keys.Down, new Action(() =>
             {
                 foreach (var item in _lights.OfType<SpotLight>())
                 {
                     item.LightData.Intensity -= 1.0f;
                 }
+            }), PressType.Down);
+            Keyboard.BindKey(Keys.X,ToggleFullscreen, PressType.Down);
 
-            }
-            if (Keyboard.IsKeyDown(Keys.X))
-            {
-                ToggleFullscreen();
-            }
-           
-            if (Keyboard.IsKeyDown(Keys.Left))
+            Keyboard.BindKey(Keys.Left, new Action(() =>
             {
                 foreach (var item in _lights.OfType<PointLight>())
                 {
                     item.Transform.Position += new Vector3(1, 0, 0);
                 }
+            }), PressType.Pressing);
 
-            }
-            if (Keyboard.IsKeyDown(Keys.Right))
+            Keyboard.BindKey(Keys.Right, new Action(() =>
             {
                 foreach (var item in _lights.OfType<PointLight>())
                 {
                     item.Transform.Position -= new Vector3(1, 0, 0);
                 }
-            }
-
-            if (Keyboard.IsKeyDown(Keys.LeftControl))
+            }),PressType.Pressing);
+            Keyboard.BindKey(Keys.LeftControl,new Action(() =>
             {
                 CursorGrabbed = false;
-                _camera.CanMove = CursorGrabbed;
                 CursorVisible = true;
-            }
-            if (Keyboard.IsKeyDown(Keys.LeftAlt))
+                _isGuiVisible = !CursorGrabbed;
+                _camera.CanMove = CursorGrabbed;
+            }),PressType.Down);
+
+            Keyboard.BindKey(Keys.LeftAlt, new Action(() =>
             {
                 CursorGrabbed = true;
                 _camera.CanMove = CursorGrabbed;
-                CursorVisible = false;
-                MousePosition = new Vector2(Game.Width /2, Game.Height/2);
-            }
-            isGuiVisible = CursorVisible;
-            
-           
+                _isGuiVisible = !CursorGrabbed;
+            }), PressType.Down);
 
         }
+
 
         private void ToggleFullscreen()
         {
             if (IsFullscreen)
             {
-                WindowBorder = WindowBorder.Resizable;
+                WindowBorder = WindowBorder.Fixed;
                 WindowState = WindowState.Normal;
-                _camera.AspectRatio = Size.X / (float)Size.Y;
             }
             else
             {
                 WindowBorder = WindowBorder.Hidden;
                 WindowState = WindowState.Fullscreen;
-                _camera.AspectRatio = Size.X / (float)Size.Y;
             }
+            Thread.Sleep(360);
+            _camera.AspectRatio = Size.X / (float)Size.Y;
         }
-        private Matrix4 CreateBillboard(Vector3 objectPosition, Vector3 cameraPosition,
-          Vector3 cameraUpVector, Vector3? cameraForwardVector)
-        {
-            Matrix4 result = Matrix4.Identity;
 
-            Vector3 vector;
-            Vector3 vector2;
-            Vector3 vector3;
-            vector.X = objectPosition.X - cameraPosition.X;
-            vector.Y = objectPosition.Y - cameraPosition.Y;
-            vector.Z = objectPosition.Z - cameraPosition.Z;
-            float num = vector.LengthSquared;
-            if (num < 0.0001f)
-            {
-                vector = cameraForwardVector.HasValue ? -cameraForwardVector.Value : new Vector3(0, 0, -1);
-            }
-            else
-            {
-                Vector3.Multiply(vector, (float)(1f / ((float)Math.Sqrt((double)num))), out vector);
-            }
-            Vector3.Cross(cameraUpVector,vector, out vector3);
-            vector3.Normalize();
-            Vector3.Cross(vector, vector3, out vector2);
-            result.M11 = vector3.X;
-            result.M12 = vector3.Y;
-            result.M13 = vector3.Z;
-            result.M14 = 0;
-            result.M21 = vector2.X;
-            result.M22 = vector2.Y;
-            result.M23 = vector2.Z;
-            result.M24 = 0;
-            result.M31 = vector.X;
-            result.M32 = vector.Y;
-            result.M33 = vector.Z;
-            result.M34 = 0;
-            result.M41 = objectPosition.X;
-            result.M42 = objectPosition.Y;
-            result.M43 = objectPosition.Z;
-            result.M44 = 1;
-
-            return result;
-        }
         void onDrawGUI()
         {
             if (ImGui.BeginMainMenuBar())
@@ -417,7 +636,7 @@ namespace Engine
 
                 if (ImGui.BeginMenu("Settings"))
                 {
-                    ImGui.Checkbox("Enabled", ref enabled);
+                    ImGui.Checkbox("Enabled", ref _enabled);
 
                     ImGui.EndMenu();
                 }
@@ -426,90 +645,50 @@ namespace Engine
 
                 ImGui.Checkbox("FOG", ref EnableDistanceFOG);
                 ImGui.Checkbox("GammaCorrection", ref GammaEnable);
-                ImGui.Checkbox("MultiSample", ref MultiSample);
+                ImGui.Checkbox("MultiSample", ref _multiSample);
                 ImGui.Checkbox("Explode", ref Explode);
-               /* int shadowSize = ShadowSize.X;
-                ImGui.InputInt("ShadowSize", ref shadowSize, 512, 512);
-                ShadowSize = new Vector2i(shadowSize, shadowSize);*/
+                ImGui.Checkbox("UseNormalMapping", ref _useNormalMapping);
+
+
 
                 ImGui.EndMainMenuBar();
             }
-            if (ImGui.TreeNode("Objects"))
+            List<GameObject> gos = new List<GameObject>();
+            gos.AddRange(WorldRenderer.GameObjects);
+            gos.AddRange(WorldRenderer.Lights);
+            if (ImGui.ListBox("Objects and Lights", ref _selectedObj, gos.Select(s => s.GetType().ToString()).ToArray(), gos.Count, 30))
             {
-                foreach (var obj in _worldRenderer.GameObjects)
+            }
+            if (ImGui.Begin("Properties", ref _opened, ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.AlwaysUseWindowPadding))
+            {
+                var obj = gos[_selectedObj];
+
+                ImGui.Text("Transform");
+
+                Vector3 pos = obj.Transform.Position;
+                var p = new System.Numerics.Vector3(pos.X, pos.Y, pos.Z);
+                ImGui.DragFloat3("Position", ref p, 0.1f);
+                obj.Transform.Position = new Vector3(p.X, p.Y, p.Z);
+
+                Vector3 rotation = obj.Transform.Rotation;
+                var r = new System.Numerics.Vector3(rotation.X, rotation.Y, rotation.Z);
+                ImGui.DragFloat3("Rotation", ref r, 0.1f);
+                obj.Transform.Rotation = new Vector3(r.X, r.Y, r.Z);
+
+                Vector3 scale = obj.Transform.Scale;
+                var s = new System.Numerics.Vector3(scale.X, scale.Y, scale.Z);
+                ImGui.DragFloat3("Scale", ref s, 0.1f);
+                obj.Transform.Scale = new Vector3(s.X, s.Y, s.Z);
+                if (obj is Light)
                 {
-                    ImGui.PushID(obj.GetType().ToString() + _worldRenderer.GameObjects.IndexOf(obj));
-                    if (ImGui.TreeNode(obj.GetType().ToString()))
-                    {
-                        ImGui.Text("Transform");
-
-                        Vector3 pos = obj.Transform.Position;
-                        var p = new System.Numerics.Vector3(pos.X, pos.Y, pos.Z);
-                        ImGui.DragFloat3("Position", ref p, 0.1f);
-                        obj.Transform.Position = new Vector3(p.X, p.Y, p.Z);
-
-                        Vector3 rotation = obj.Transform.Rotation;
-                        var r = new System.Numerics.Vector3(rotation.X, rotation.Y, rotation.Z);
-                        ImGui.DragFloat3("Rotation", ref r, 0.1f);
-                        obj.Transform.Rotation = new Vector3(r.X, r.Y, r.Z);
-
-                        Vector3 scale = obj.Transform.Scale;
-                        var s = new System.Numerics.Vector3(scale.X, scale.Y, scale.Z);
-                        ImGui.DragFloat3("Scale", ref s, 0.1f);
-                        obj.Transform.Scale = new Vector3(s.X, s.Y, s.Z);
-                    }
-
-                    ImGui.PopID();
+                    var intensity = obj.LightData.Intensity;
+                    ImGui.DragFloat("Intensity", ref intensity, 0.1f);
+                    obj.LightData.Intensity = intensity;
                 }
-                ImGui.TreePop();
 
-                if (ImGui.TreeNode("Lights"))
-                {
-                    foreach (var obj in _worldRenderer.Lights)
-                    {
-                        ImGui.PushID(obj.GetType().ToString() + _worldRenderer.Lights.IndexOf(obj));
-                        if (ImGui.TreeNode(obj.GetType().ToString()))
-                        {
-                            ImGui.Text("Transform");
-
-                            Vector3 pos = obj.Transform.Position;
-                            var p = new System.Numerics.Vector3(pos.X, pos.Y, pos.Z);
-                            ImGui.DragFloat3("Position", ref p, 0.1f);
-                            obj.Transform.Position = new Vector3(p.X, p.Y, p.Z);
-
-                            Vector3 rotation = obj.Transform.Rotation;
-                            var r = new System.Numerics.Vector3(rotation.X, rotation.Y, rotation.Z);
-                            ImGui.DragFloat3("Rotation", ref r, 0.1f);
-                            obj.Transform.Rotation = new Vector3(r.X, r.Y, r.Z);
-
-                            Vector3 scale = obj.Transform.Scale;
-                            var s = new System.Numerics.Vector3(scale.X, scale.Y, scale.Z);
-                            ImGui.DragFloat3("Scale", ref s, 0.1f);
-                            obj.Transform.Scale = new Vector3(s.X, s.Y, s.Z);
-
-                            ImGui.Text("LightData");
-                            float intens = obj.LightData.Intensity;
-                            ImGui.DragFloat("Intensity", ref intens);
-                            obj.LightData.Intensity = intens;
-
-                            var near = obj.NearPlane;
-                            var far = obj.FarPlane;
-
-                            ImGui.DragFloat("Near", ref near, 1.0f, 1.0f, 100.0f);
-                            ImGui.DragFloat("Far", ref far, 1.0f, 1.0f, 9999.0f);
-                            obj.NearPlane = near;
-                            obj.FarPlane = far;
-                        }
-                        ImGui.PopID();
-                    }
-                    ImGui.TreePop();
-                }
             }
             ImGui.End();
-
-            #endregion
-
-          
         }
+        #endregion
     }
 }

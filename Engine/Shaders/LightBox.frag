@@ -1,13 +1,13 @@
-﻿#version 450 core
+﻿#version 460 core
 layout(location = 0) out vec4 FragColor;
 
 uniform vec3 lightColor;
-uniform sampler2D texture_diffuse0;
+uniform sampler2D Diffuse;
 in vec2 TexCoords;
 
 void main()
 {           
-	vec4 diff = texture(texture_diffuse0, TexCoords);
+	vec4 diff = texture(Diffuse, TexCoords);
 	if (diff.a < 0.5)
 	{
 		discard;

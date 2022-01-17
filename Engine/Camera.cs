@@ -1,5 +1,4 @@
-﻿using OpenTK;
-using OpenTK.Input;
+﻿using Engine.Rendering.GameObjects;
 using OpenTK.Mathematics;
 using OpenTK.Windowing.Common;
 using OpenTK.Windowing.GraphicsLibraryFramework;
@@ -7,7 +6,7 @@ using System;
 
 namespace Engine
 {
-    public class Camera
+    public class Camera : GameObject
     {
         public float CameraSpeed
         {
@@ -20,7 +19,6 @@ namespace Engine
 
         private readonly float _sensitivity = 0.2f;
         private KeyboardState _keyboard;
-        private Vector3 _front = -Vector3.UnitZ;
 
         private Vector3 _up = Vector3.UnitY;
 
@@ -36,19 +34,18 @@ namespace Engine
         // The field of view of the camera (radians)
         private float _fov = MathHelper.PiOver2;
 
-        public Camera(Vector3 position, float aspectRatio)
+        public Camera(Vector3 position, float aspectRatio) : base()
         {
-            Position = position;
             AspectRatio = aspectRatio;
+            Transform.Position = position;
+            Transform.Direction = Vector3.UnitZ;
         }
 
-        // The position of the camera
-        public Vector3 Position { get; set; }
 
         // This is simply the aspect ratio of the viewport, used for the projection matrix
         public float AspectRatio { private get; set; }
 
-        public Vector3 Front => _front;
+        public Vector3 Front => Transform.Direction;
 
         public Vector3 Up => _up;
 
@@ -59,7 +56,12 @@ namespace Engine
             window.UpdateFrame += Window_UpdateFrame;
             window.MouseMove += Window_MouseMove;
             _keyboard = window.KeyboardState;
-
+        }
+        public void Disable(Game window)
+        {
+            window.UpdateFrame -= Window_UpdateFrame;
+            window.MouseMove -= Window_MouseMove;
+            _keyboard = null;
         }
         private void Window_UpdateFrame(FrameEventArgs obj)
         {
@@ -81,27 +83,27 @@ namespace Engine
 
             if (_keyboard.IsKeyDown(Keys.W))
             {
-                Position += Front * CameraSpeed * Game.DeltaTime; // Forward
+                Transform.Position += Front * CameraSpeed * Game.DeltaTime; // Forward
             }
             if (_keyboard.IsKeyDown(Keys.S))
             {
-                Position -= Front * CameraSpeed * Game.DeltaTime; // Backwards
+                Transform.Position -= Front * CameraSpeed * Game.DeltaTime; // Backwards
             }
             if (_keyboard.IsKeyDown(Keys.A))
             {
-                Position -= Right * CameraSpeed * Game.DeltaTime; // Left
+                Transform.Position -= Right * CameraSpeed * Game.DeltaTime; // Left
             }
             if (_keyboard.IsKeyDown(Keys.D))
             {
-                Position += Right * CameraSpeed * Game.DeltaTime; // Right
+                Transform.Position += Right * CameraSpeed * Game.DeltaTime; // Right
             }
             if (_keyboard.IsKeyDown(Keys.Space))
             {
-                Position += Up * CameraSpeed * Game.DeltaTime; // Up
+                Transform.Position += Up * CameraSpeed * Game.DeltaTime; // Up
             }
             if (_keyboard.IsKeyDown(Keys.LeftShift))
             {
-                Position -= Up * CameraSpeed * Game.DeltaTime; // Down
+                Transform.Position -= Up * CameraSpeed * Game.DeltaTime; // Down
             }
             if (_keyboard.IsKeyDown(Keys.RightAlt))
             {
@@ -163,31 +165,36 @@ namespace Engine
         // Get the view matrix using the amazing LookAt function described more in depth on the web tutorials
         public virtual Matrix4 GetViewMatrix()
         {
-            return Matrix4.LookAt(Position, Position + _front, _up);
+            return Matrix4.LookAt(Transform.Position, Transform.Position + Transform.Direction, _up);
+
         }
 
         // Get the projection matrix using the same method we have used up until this point
         public Matrix4 GetProjectionMatrix()
         {
-            return Matrix4.CreatePerspectiveFieldOfView(_fov, AspectRatio, 0.001f, 1000f);
+            return Matrix4.CreatePerspectiveFieldOfView(_fov, AspectRatio, 0.001f, 100000f);
         }
 
         // This function is going to update the direction vertices using some of the math learned in the web tutorials
         private void UpdateVectors()
         {
             // First the front matrix is calculated using some basic trigonometry
-            _front.X = MathF.Cos(_pitch) * MathF.Cos(_yaw);
-            _front.Y = MathF.Sin(_pitch);
-            _front.Z = MathF.Cos(_pitch) * MathF.Sin(_yaw);
+            Transform.Direction = new Vector3(MathF.Cos(_pitch) * MathF.Cos(_yaw), MathF.Sin(_pitch), MathF.Cos(_pitch) * MathF.Sin(_yaw));
 
             // We need to make sure the vectors are all normalized, as otherwise we would get some funky results
-            _front = Vector3.Normalize(_front);
+            Transform.Direction = Vector3.Normalize(Transform.Direction);
 
             // Calculate both the right and the up vector using cross product
             // Note that we are calculating the right from the global up, this behaviour might
             // not be what you need for all cameras so keep this in mind if you do not want a FPS camera
-            _right = Vector3.Normalize(Vector3.Cross(_front, Vector3.UnitY));
-            _up = Vector3.Normalize(Vector3.Cross(_right, _front));
+            _right = Vector3.Normalize(Vector3.Cross(Front, Vector3.UnitY));
+            _up = Vector3.Normalize(Vector3.Cross(_right, Front));
+        }
+        public override void Update(float dt)
+        {
+            base.Update(dt);
+            Transform.Position = Transform.Model.ExtractTranslation();
+            //Console.WriteLine(Transform.Model.ExtractTranslation());
         }
     }
 }

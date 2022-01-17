@@ -1,21 +1,21 @@
 ﻿using OpenTK.Graphics.OpenGL4;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Engine.GLObjects
 {
-    public class EBO
+    public class EBO : IDisposable
     {
         public int Ebo;
-        public void Setup(int[] indices) 
+        public void Setup(uint[] indices)
         {
-            Ebo = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ElementArrayBuffer, Ebo);
-            GL.BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(indices.Length * sizeof(int)), indices, BufferUsageHint.StaticDraw);
+            Game.EngineGL.GenBuffer(out Ebo)
+                .BindBuffer(BufferTarget.ElementArrayBuffer, Ebo)
+                .BufferData(BufferTarget.ElementArrayBuffer, (IntPtr)(indices.Length * sizeof(uint)), indices, BufferUsageHint.StaticDraw);
         }
+        public void Dispose()
+        {
+            GL.DeleteBuffer(Ebo);
 
+        }
     }
 }

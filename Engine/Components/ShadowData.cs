@@ -1,16 +1,13 @@
 ﻿using Engine.GameObjects.Lights;
 using Engine.GLObjects.FrameBuffers;
+using Engine.Rendering.GameObjects;
 using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Engine.Components
 {
-    public struct ShadowData : IComponent
+    public struct ShadowData : IComponent, IDisposable
     {
         private const FramebufferAttachment _attachment = FramebufferAttachment.DepthAttachment;
         private const PixelInternalFormat _format = PixelInternalFormat.DepthComponent;
@@ -18,11 +15,15 @@ namespace Engine.Components
         private static int id = 31;
 
         private FrameBuffer _shadow;
+        private GameObject _attachedObject;
 
         public FrameBuffer Shadow { get => _shadow; set => _shadow = value; }
+        public GameObject AttachedObject { get => _attachedObject; set => _attachedObject = value; }
+
         public ShadowData(FrameBuffer shadow)
         {
             _shadow = shadow;
+            _attachedObject = null;
             //Game.ChangeShadowsSize += Game_ChangeShadowsSize;
         }
 
@@ -51,46 +52,49 @@ namespace Engine.Components
 
         public static FrameBuffer GetDefaultFrameBuffer() => new FrameBuffer(Game.ShadowSize, ClearBufferMask.DepthBufferBit);
 
-        /// <summary>
-        /// May be it will be usefull somehow
-        /// </summary>
-        /// <param name="shader"></param>
-        /// <param name="light"></param>
-        /// <param name="textureIdx"></param>
-        public void Render(Shader shader, Light light)
+        public void Render(PointLight light)
         {
-            var type = light.GetType();
             RefreshTextureID();
-            if (type == typeof(PointLight))
-            {
-                var tmp = (PointLight)light;
-                GL.ActiveTexture(TextureUnit.Texture0 + id);
-                Shadow.CubeMap.Bind();
-                shader.SetInt($"pointLights[{tmp.PointLightID}].shadow", id);
-            }
-            else if (type == typeof(DirectLight))
-            {
-                GL.ActiveTexture(TextureUnit.Texture0 + id);
-                Shadow.Texture.Bind(TextureTarget.Texture2D);
-                shader.SetInt("dirLight.shadow", id);
-
-            }
-            else
-            {
-                var tmp = (SpotLight)light;
-                GL.ActiveTexture(TextureUnit.Texture0 + id);
-                Shadow.Texture.Bind(TextureTarget.Texture2D);
-                shader.SetInt($"spotLights[{tmp.ID}].shadow", id);
-            }
+            Game.EngineGL.ActiveTexture(TextureUnit.Texture0 + id)
+                .BindTexture(TextureTarget.TextureCubeMap, light.ShadowData.Shadow.Texture)
+                .SetShaderData($"pointLights[{light.PointLightID}].shadow", id);
             id--;
         }
-        private void RefreshTextureID()
+        public void Render(DirectLight light)
         {
-            if (id == -1)
+            RefreshTextureID();
+            Game.EngineGL.ActiveTexture(TextureUnit.Texture0 + id)
+                .BindTexture(TextureTarget.Texture2D, light.ShadowData.Shadow.Texture)
+                .SetShaderData("dirLight.shadow", id);
+
+            id--;
+        }
+        public void Render(SpotLight light)
+        {
+            RefreshTextureID();
+            Game.EngineGL.ActiveTexture(TextureUnit.Texture0 + id)
+              .BindTexture(TextureTarget.Texture2D, light.ShadowData.Shadow.Texture)
+              .SetShaderData($"spotLights[{light.SpotLightId}].shadow", id);
+
+            id--;
+        }
+        public static void RefreshTextureID()
+        {
+            if (id == 0)
             {
                 id = 31;
             }
         }
+        public static void SetTextureIdDefault() => id = 31;
 
+        public void AttachGameObject(GameObject gameObject)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Dispose()
+        {
+            Shadow?.Dispose();
+        }
     }
 }

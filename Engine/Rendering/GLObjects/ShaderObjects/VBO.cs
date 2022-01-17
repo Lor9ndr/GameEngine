@@ -4,20 +4,31 @@ using System;
 
 namespace Engine.GLObjects
 {
-    public class VBO
+    public class VBO : IDisposable
     {
         public int Vbo;
+        private bool _isDisposed = false;
+
         public void Setup(Vertex[] vertices)
         {
-            Vbo = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, Vbo);
-            GL.BufferData(BufferTarget.ArrayBuffer, vertices.Length * Vertex.Size, vertices, BufferUsageHint.StaticDraw);
+            Game.EngineGL.GenBuffer(out Vbo)
+                .BindBuffer(BufferTarget.ArrayBuffer, Vbo)
+                .BufferData(BufferTarget.ArrayBuffer, vertices.Length * Vertex.Size, vertices, BufferUsageHint.StaticDraw);
         }
         public void SetupInstances(int instances)
         {
-            Vbo = GL.GenBuffer();
-            GL.BindBuffer(BufferTarget.ArrayBuffer, Vbo);
-            GL.BufferData(BufferTarget.ArrayBuffer, instances, (IntPtr)null, BufferUsageHint.DynamicDraw);
+            Game.EngineGL.GenBuffer(out Vbo)
+                .BindBuffer(BufferTarget.ArrayBuffer, Vbo)
+                .BufferData(BufferTarget.ArrayBuffer, instances, IntPtr.Zero, BufferUsageHint.DynamicDraw);
+        }
+        public void Dispose()
+        {
+            if (!_isDisposed)
+            {
+                GL.DeleteBuffer(Vbo);
+                _isDisposed = true;
+            }
+
         }
     }
 }

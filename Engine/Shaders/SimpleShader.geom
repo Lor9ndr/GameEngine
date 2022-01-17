@@ -1,18 +1,20 @@
 ﻿#version 460 core
-layout (triangles ) in;
-layout (triangle_strip, max_vertices = 6) out;
+layout (triangles) in;
+layout (triangle_strip, max_vertices = 3) out;
 
 in VS_OUT {
     vec3 FragPos;
-    vec3 Normal;
     vec2 TexCoords;
+    vec3 Normal;
+    mat3 TBN;
 } gs_in[];
 
 out GS_OUT
 {
     vec3 FragPos;
-    vec3 Normal;
     vec2 TexCoords;
+    vec3 Normal;
+    mat3 TBN;
 } gs_out;
 
 
@@ -50,6 +52,7 @@ void main()
 
         gs_out.FragPos = gs_in[i].FragPos;
         gs_out.TexCoords = gs_in[i].TexCoords;
+        gs_out.TBN = gs_in[i].TBN;
         gs_out.Normal = gs_in[i].Normal;
         EmitVertex();
     }

@@ -1,8 +1,8 @@
 ﻿using Engine.Components;
 using Engine.Rendering.Enums;
-using Engine.Rendering.GameObjects;
 using OpenTK.Mathematics;
 using System;
+using System.Threading.Tasks;
 
 namespace Engine.GameObjects.Lights
 {
@@ -12,12 +12,12 @@ namespace Engine.GameObjects.Lights
         public float CutOff { get => MathF.Cos(MathHelper.DegreesToRadians(_cutOff)); set => _cutOff = value; }
         public float OuterCutOff { get => MathF.Cos(MathHelper.DegreesToRadians(outerCutOff)); set => outerCutOff = value; }
 
-        public int ID;
+        public int SpotLightId;
 
-        private static int _spotLightId = 0;
-        private float _constant;
-        private float _linear;
-        private float _quadratic;
+        private static int _spotLightId;
+        private readonly float _constant;
+        private readonly float _linear;
+        private readonly float _quadratic;
         private float _cutOff;
         private float outerCutOff;
 
@@ -28,7 +28,7 @@ namespace Engine.GameObjects.Lights
                          float quadratic = 0.32f,
                          float cutOff = 12.5f,
                          float outerCutOff = 20.0f,
-                         Model model = null) 
+                         Model model = null)
             : base(model, lightData, transform)
         {
             _constant = constant;
@@ -42,36 +42,44 @@ namespace Engine.GameObjects.Lights
             ShadowData.Shadow.DisableColorBuffer();
             ShadowData.AttachTexture2DMap();
             FarPlane = 100.0f;
-            NearPlane = 2.0f;
-            UpdateMatrices();
-            ID = _spotLightId;
+            NearPlane = 4.0f;
+            SpotLightId = _spotLightId;
             _spotLightId++;
         }
 
 
         public override void Render(Shader shader, RenderFlags flags)
         {
-            string name = $"spotLights[{ID}].";
+            string name = $"spotLights[{SpotLightId}].";
+            Game.EngineGL.UseShader(shader)
+                .SetShaderData("lightColor", LightData.Color);
+            if (flags.HasFlag(RenderFlags.LightData))
+            {
+                Transform.SetLightValuesShader(shader, name);
+                LightData.Render(shader, name, flags);
+                Game.EngineGL.SetShaderData(name + "constant", _constant)
+                .SetShaderData(name + "linear", _linear)
+                .SetShaderData(name + "quadratic", _quadratic)
+                .SetShaderData(name + "cutOff", CutOff)
+                .SetShaderData(name + "outerCutOff", OuterCutOff)
+                .SetShaderData(name + "farPlane", FarPlane)
+                .SetShaderData(name + "lightSpaceMatrix", LightSpaceMatrix);
+            }
 
-            Transform.SetValuesShader(shader, name);
-            LightData.Render(shader, name);
-
-            shader.SetFloat(name + "constant", _constant);
-            shader.SetFloat(name + "linear", _linear);
-            shader.SetFloat(name + "quadratic", _quadratic);
-            shader.SetFloat(name + "cutOff", CutOff);
-            shader.SetFloat(name + "outerCutOff", OuterCutOff);
-            shader.SetFloat(name + "farPlane", FarPlane);
-            shader.SetMatrix4(name + "lightSpaceMatrix", LightSpaceMatrix);
-            ProcessShadow(shader);
+            if (flags.HasFlag(RenderFlags.ProcessShadow) && Game.Shadows)
+            {
+                ShadowData.Render(this);
+            }
             base.Render(shader, flags);
+
         }
 
-        public override Matrix4 GetProjection => Matrix4.CreatePerspectiveFieldOfView(CutOff * 2.0f, 1.0f, NearPlane, FarPlane);
-        public override void UpdateMatrices()
+        public override Matrix4 GetProjection => Matrix4.CreatePerspectiveFieldOfView(CutOff,1, NearPlane, FarPlane);
+        public override async Task UpdateMatricesAsync()
         {
-            Matrix4 view = Matrix4.LookAt(Transform.Position, Transform.Position + Transform.Direction * FarPlane, Vector3.UnitY);
+            Matrix4 view = Matrix4.LookAt(Transform.Position, Transform.Position + Transform.Direction, Vector3.UnitY);
             LightSpaceMatrix = view * GetProjection;
+            await Task.CompletedTask;
         }
     }
 }

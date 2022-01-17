@@ -1,4 +1,5 @@
-﻿using OpenTK.Graphics.OpenGL4;
+﻿using Engine.Rendering.Enums;
+using OpenTK.Graphics.OpenGL4;
 using OpenTK.Mathematics;
 using System;
 using System.Drawing;
@@ -13,9 +14,8 @@ namespace Engine.GLObjects.Textures
         {
 
         }
-        public CubeMap(int glHandle,string type) : base(glHandle, type)
+        public CubeMap(int glHandle, TextureType type) : base(glHandle, type)
         {
-
         }
         public override void SetTexParameters(Vector2i size, PixelInternalFormat format, PixelType type)
         {
@@ -23,20 +23,21 @@ namespace Engine.GLObjects.Textures
             for (int i = 0; i < 6; i++)
             {
 
-                GL.TexImage2D(TextureTarget.TextureCubeMapPositiveX + i,
+                Game.EngineGL.TexImage2D(TextureTarget.TextureCubeMapPositiveX + i,
                     0, format, size.X, size.Y, 0, (PixelFormat)format, type, (IntPtr)null);
             }
 
-            GL.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-            GL.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-            GL.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
-            GL.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
-            GL.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapR, (int)TextureWrapMode.ClampToEdge);
+            Game.EngineGL.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear)
+            .TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear)
+            .TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge)
+            .TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge)
+            .TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapR, (int)TextureWrapMode.ClampToEdge);
         }
-        public static CubeMap LoadCubeMapFromFile(string[] faces, string type)
+
+        public static CubeMap LoadCubeMapFromFile(string[] faces, TextureType type)
         {
-            int handle = GL.GenTexture();
-            GL.BindTexture(TextureTarget.TextureCubeMap, handle);
+            Game.EngineGL.GenTexture(out int handle)
+                .BindTexture(TextureTarget.TextureCubeMap, handle);
 
             for (int i = 0; i < faces.Length; i++)
             {
@@ -50,7 +51,7 @@ namespace Engine.GLObjects.Textures
                     System.Drawing.Imaging.PixelFormat.Format32bppArgb);
 
 
-                GL.TexImage2D(TextureTarget.TextureCubeMapPositiveX + i,
+                Game.EngineGL.TexImage2D(TextureTarget.TextureCubeMapPositiveX + i,
                     0,
                     PixelInternalFormat.Rgba,
                     image.Width,
@@ -60,15 +61,15 @@ namespace Engine.GLObjects.Textures
                     PixelType.UnsignedByte,
                     data.Scan0);
             }
-            GL.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear);
-            GL.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear);
-            GL.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge);
-            GL.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge);
-            GL.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapR, (int)TextureWrapMode.ClampToEdge);
+            Game.EngineGL.TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMagFilter, (int)TextureMagFilter.Linear)
+                        .TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureMinFilter, (int)TextureMinFilter.Linear)
+                        .TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapS, (int)TextureWrapMode.ClampToEdge)
+                        .TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapT, (int)TextureWrapMode.ClampToEdge)
+                        .TexParameter(TextureTarget.TextureCubeMap, TextureParameterName.TextureWrapR, (int)TextureWrapMode.ClampToEdge);
             return new CubeMap(handle, type);
         }
-       
-        public override void Bind(TextureTarget type = default) => GL.BindTexture(TextureTarget.TextureCubeMap, Handle);
+
+        public override void Bind(TextureTarget type = default) => GL.BindTexture(TextureTarget.TextureCubeMap, Id);
 
     }
 }

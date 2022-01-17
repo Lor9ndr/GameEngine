@@ -2,7 +2,7 @@
 using Engine.Rendering.GameObjects;
 using OpenTK.Mathematics;
 using System;
-using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Engine.GameObjects.Lights
 {
@@ -21,7 +21,7 @@ namespace Engine.GameObjects.Lights
 
 
         public Light(Model model, LightData lightData, Transform transform)
-            : base( model,transform)
+            : base(model, transform)
         {
             LightData = lightData;
             ShadowData = new ShadowData();
@@ -29,19 +29,19 @@ namespace Engine.GameObjects.Lights
         }
         public virtual Matrix4 GetProjection => throw new NotImplementedException();
 
-        public virtual void UpdateMatrices() => throw new NotImplementedException();
+        public virtual Task UpdateMatricesAsync() => throw new NotImplementedException();
         public void SetAmbient(Vector3 ambient)
         {
             LightData.PlusAmbient(ambient);
         }
-        public virtual void ProcessShadow(Shader shader)
+        public override void Update(float dt)
         {
-            if (Game.Shadows)
-            {
-                ShadowData.Render(shader, this);
-                UpdateMatrices();
-            }
+            base.Update(dt);
         }
-        
+        public override async Task FixedUpdate()
+        {
+            await base.FixedUpdate();
+            await UpdateMatricesAsync();
+        }
     }
 }

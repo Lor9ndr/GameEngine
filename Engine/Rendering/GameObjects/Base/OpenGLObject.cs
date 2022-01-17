@@ -10,40 +10,52 @@ namespace Engine.GameObjects.Base
     public abstract class OpenGLObject : IDisposable
     {
         public ObjectSetupper ObjectSetupper;
-        public OpenGLObject(Vertex[] vertices, int[] indices = null)
-        {
-            ObjectSetupper = new ObjectSetupper(vertices, indices);
+        public static object BindedVAO = 0;
+        internal OpenGLObject(Vertex[] vertices, uint[] indices = null)
+            => ObjectSetupper = new ObjectSetupper(vertices, indices);
 
-        }
-        protected virtual void Setup(SetupLevel levels, VAO vao = default)
-        {
-            ObjectSetupper.SetAndBindVAO(levels, vao);
-        }
-        protected virtual void Setup(int noInstances)
-        {
+        protected internal virtual void Setup(SetupLevel levels, VAO vao = default)
+            => ObjectSetupper.SetAndBindVAO(levels, vao);
 
-        }
-
-        public virtual void Draw() => Draw(PrimitiveType.Triangles);
-        public virtual void Draw(PrimitiveType type)
+        internal virtual void Draw() => Draw(PrimitiveType.Triangles);
+        internal virtual void Draw(PrimitiveType type)
         {
-            GL.BindVertexArray(ObjectSetupper.GetVAO());
+            Game.EngineGL.BindVAO(ObjectSetupper.GetVAOClass());
             if (ObjectSetupper.HasIndices)
             {
-                GL.DrawElements(type, ObjectSetupper.IndicesCount, DrawElementsType.UnsignedInt,0);
+                Game.EngineGL.BindBuffer(BufferTarget.ElementArrayBuffer, ObjectSetupper.GetEBO());
+                Game.EngineGL.DrawElements(type, ObjectSetupper.IndicesCount, DrawElementsType.UnsignedInt, 0);
             }
             else
             {
-                GL.DrawArrays(type, 0, ObjectSetupper.VerticesCount);
+                Game.EngineGL.DrawArrays(type, 0, ObjectSetupper.VerticesCount);
             }
-            GL.BindVertexArray(0);
-
+            Game.EngineGL.BindVAO(0);
         }
-        public virtual void Draw(Camera camera) => Draw();
 
         public void Dispose()
         {
-            GC.SuppressFinalize(this);
+            ObjectSetupper.Dispose();
         }
     }
 }
+
+
+// Заготовка для частиц
+/* int resultVao = ObjectSetupper.GetVAO();
+ if (Vaos.ContainsKey(resultVao))
+ {
+     Vaos[resultVao] = (Vaos[resultVao].count + 1, false);
+ }
+ else
+ {
+     Vaos.Add(resultVao, (1, false));
+ }
+ Console.WriteLine($"VAO: {resultVao}, COUNT: {Vaos[resultVao].count}");*/
+/* if (!Vaos[vao].isRendered)
+               {
+                   GL.BindBuffer(BufferTarget.ElementArrayBuffer, ObjectSetupper.GetEBO());
+                   GL.DrawElementsInstanced(type, ObjectSetupper.IndicesCount, DrawElementsType.UnsignedInt, (IntPtr)null, Vaos[vao].count);
+                   Vaos[vao] = (Vaos[vao].count, !Vaos[vao].isRendered);
+                   GL.BindBuffer(BufferTarget.ElementArrayBuffer,0);
+               }*/

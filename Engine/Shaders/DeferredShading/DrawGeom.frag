@@ -8,7 +8,7 @@ layout (location = 1) out vec3 DiffuseOut;
 layout (location = 2) out vec3 NormalOut; 
 layout (location = 3) out vec4 LightOut; 
 
-uniform sampler2D texture_diffuse0;              
+uniform sampler2D diffuse;              
 
 uniform vec3 AmbientDirection;
 uniform vec3 AmbientColor;
@@ -16,7 +16,7 @@ uniform float AmbientPower;
 
 void main()
 {
-    DiffuseOut      = texture2D(texture_diffuse0, TexCoord).xyz;
+    DiffuseOut      = texture2D(diffuse, TexCoord).xyz;
     WorldPosOut     = WorldPos;
     NormalOut       = normalize(Nrm);
 

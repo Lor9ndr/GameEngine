@@ -1,4 +1,6 @@
-﻿using OpenTK.Mathematics;
+﻿using Engine.Rendering.Enums;
+using Engine.Rendering.GameObjects;
+using OpenTK.Mathematics;
 
 namespace Engine.Components
 {
@@ -15,7 +17,7 @@ namespace Engine.Components
         public Vector3 Ambient { get => _ambient; set => _ambient = value; }
         public Vector3 Color { get => _color; set => _color = value; }
         public float Intensity { get => _intensity; set => _intensity = value; }
-
+        public GameObject AttachedObject { get; set; }
 
         public LightData(Vector3 color, Vector3 ambient, Vector3 diffuse, Vector3 specular, float intensity)
         {
@@ -26,14 +28,18 @@ namespace Engine.Components
             _intensity = intensity;
         }
 
-        public void Render(Shader shader, string name)
+        public void Render(Shader shader, string name, RenderFlags flags)
         {
-            shader.SetVector3(name + "ambient", Ambient);
-            shader.SetVector3(name + "diffuse", Diffuse);
-            shader.SetVector3(name + "specular", Specular);
-            shader.SetVector3(name + "lightColor", Color);
-            shader.SetVector3("lightColor", Color);
-            shader.SetFloat(name + "intensity", Intensity);
+            if (flags.HasFlag(RenderFlags.LightData))
+            {
+                shader.SetVector3(name + "ambient", Ambient);
+                shader.SetVector3(name + "diffuse", Diffuse);
+                shader.SetVector3(name + "specular", Specular);
+                shader.SetVector3(name + "lightColor", Color);
+                shader.SetVector3("lightColor", Color);
+                shader.SetFloat(name + "intensity", Intensity);
+            }
+
         }
 
         public void PlusAmbient(Vector3 ambient) => Ambient += ambient;
@@ -41,5 +47,9 @@ namespace Engine.Components
         public void PlusDiffuse(Vector3 diffuse) => Diffuse += diffuse;
         public void PlusColor(Vector3 color) => Color += color;
 
+        public void AttachGameObject(GameObject gameObject)
+        {
+            AttachedObject = gameObject;
+        }
     }
 }
